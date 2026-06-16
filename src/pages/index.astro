@@ -21,8 +21,15 @@ const colaEstaciones = ESTACIONES.filter((e) =>
 			<div class="card onboarding-card">
 				<h1>Toma de datos<br /><span>Comedor UNSAAC</span></h1>
 				<p>¿Quién está tomando los datos?</p>
-				<input id="nombre-input" type="text" placeholder="Tu nombre" autocomplete="name" />
-				<button id="nombre-ok" class="btn-primary">Empezar</button>
+				<div class="nombres" id="nombres">
+					{['Johan', 'Oscar', 'Denis', 'Brayan', 'Jose'].map((n) => (
+						<button class="btn-nombre" data-nombre={n} type="button">{n}</button>
+					))}
+				</div>
+				<div class="otro">
+					<input id="nombre-input" type="text" placeholder="Otro nombre…" autocomplete="name" />
+					<button id="nombre-ok" class="btn-primary">Empezar</button>
+				</div>
 			</div>
 		</div>
 
@@ -138,16 +145,28 @@ const colaEstaciones = ESTACIONES.filter((e) =>
 			function pedirNombre(forzar) {
 				const ob = $('#onboarding');
 				if (!forzar && getObservador()) { ob.hidden = true; return; }
-				$('#nombre-input').value = getObservador();
+				const actual = getObservador();
+				let preset = false;
+				document.querySelectorAll('#nombres .btn-nombre').forEach((b) => {
+					const on = b.dataset.nombre === actual;
+					b.classList.toggle('on', on);
+					if (on) preset = true;
+				});
+				$('#nombre-input').value = preset ? '' : actual;
 				ob.hidden = false;
-				$('#nombre-input').focus();
 			}
+			function elegir(nombre) {
+				setObservador(nombre);
+				pintarObs();
+				$('#onboarding').hidden = true;
+			}
+			document.querySelectorAll('#nombres .btn-nombre').forEach((b) => {
+				b.addEventListener('click', () => elegir(b.dataset.nombre));
+			});
 			$('#nombre-ok').addEventListener('click', () => {
 				const v = $('#nombre-input').value.trim();
 				if (!v) { $('#nombre-input').focus(); return; }
-				setObservador(v);
-				pintarObs();
-				$('#onboarding').hidden = true;
+				elegir(v);
 			});
 			$('#nombre-input').addEventListener('keydown', (e) => { if (e.key === 'Enter') $('#nombre-ok').click(); });
 			$('#cambiar-obs').addEventListener('click', () => pedirNombre(true));
@@ -386,7 +405,17 @@ const colaEstaciones = ESTACIONES.filter((e) =>
 			.onboarding h1 { font-size: 1.5rem; line-height: 1.15; margin: 0 0 1rem; }
 			.onboarding h1 span { color: var(--accent); font-size: 1rem; font-weight: 600; }
 			.onboarding p { color: var(--muted); font-size: .9rem; margin: 0 0 .8rem; }
-			.onboarding input { width: 100%; padding: .9rem; border-radius: 12px; border: 1px solid var(--panel2); background: var(--bg); color: var(--txt); font-size: 1.1rem; margin-bottom: .9rem; }
+			.nombres { display: grid; grid-template-columns: 1fr 1fr; gap: .55rem; margin-bottom: 1.1rem; }
+			.btn-nombre {
+				border: 1px solid var(--panel2); background: var(--bg); color: var(--txt);
+				border-radius: 12px; padding: 1rem .5rem; font-size: 1.05rem; font-weight: 700; cursor: pointer;
+			}
+			.btn-nombre.on { background: var(--accent); color: #04293a; border-color: var(--accent); }
+			.btn-nombre:active { filter: brightness(1.15); }
+			.otro { display: flex; gap: .5rem; align-items: stretch; }
+			.otro input { flex: 1; min-width: 0; }
+			.otro .btn-primary { width: auto; white-space: nowrap; padding-left: 1.1rem; padding-right: 1.1rem; }
+			.onboarding input { width: 100%; padding: .9rem; border-radius: 12px; border: 1px solid var(--panel2); background: var(--bg); color: var(--txt); font-size: 1rem; }
 
 			.toast {
 				position: fixed; bottom: 92px; left: 50%; transform: translateX(-50%); z-index: 30;
