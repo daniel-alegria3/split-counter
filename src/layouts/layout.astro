@@ -1,0 +1,46 @@
+---
+import 'framework7/css/bundle'
+import 'framework7-icons/css/framework7-icons.css'
+import '@/styles/global.css'
+
+const { title = 'Split Counter', pageName = 'index' } = Astro.props
+---
+
+<html lang="en" class="md">
+  <head>
+    <meta charset="utf-8" />
+    <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
+    <link rel="icon" href="/favicon.ico" />
+    <meta name="viewport" content="width=device-width" />
+    <meta name="generator" content={Astro.generator} />
+    <title>{title}</title>
+  </head>
+  <body>
+    <div id="app">
+      <div class="view">
+        <div class="page" data-name={pageName}>
+          <div class="navbar">
+            <div class="navbar-bg"></div>
+            <div class="navbar-inner">
+              <div class="title">{title}</div>
+            </div>
+          </div>
+          <div class="page-content">
+            <slot />
+          </div>
+        </div>
+      </div>
+    </div>
+    <script>
+      import Framework7 from 'framework7/bundle'
+
+      new Framework7({
+        el: '#app',
+        name: 'Split Counter',
+        theme: 'md',
+        pushState: false,
+        router: false,
+      })
+    </script>
+  </body>
+</html>
