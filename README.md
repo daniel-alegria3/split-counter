@@ -1,43 +1,47 @@
-# Astro Starter Kit: Minimal
+# Contador — Comedor Universitario UNSAAC
 
-```sh
-npm create astro@latest -- --template minimal
-```
+App móvil para **tomar datos de campo** del estudio de simulación del comedor
+(tiempos de servicio, llegadas, colas y decisiones de los comensales). Se
+despliega en Vercel y cada medición se guarda en una **Google Sheet**.
 
-> 🧑‍🚀 **Seasoned astronaut?** Delete this file. Have fun!
+## Herramientas en la app
 
-## 🚀 Project Structure
+- **⏱ Tiempos** — cronómetro por estación (huelleros, P1–P5, ají, bandeja,
+  escalera, devolución). Cada toma se guarda sola; muestra promedio en vivo.
+- **＋ Llegadas** — contador tipo *tally* ligado al intervalo de 20 min actual.
+- **≡ Colas** — registra la longitud de cola observada en una estación.
+- **% Decisión** — botones sí/no para % ají y % piso 2 vs piso 1.
 
-Inside of your Astro project, you'll see the following folders and files:
+Cada observador se identifica con su nombre y todos escriben a la misma hoja.
+Los datos se encolan en el navegador y se sincronizan solos cuando hay red
+(resistente a cortes de wifi en el comedor).
+
+## Puesta en marcha
+
+Ver **[CONFIGURACION.md](CONFIGURACION.md)** — crear la Google Sheet, publicar
+el Apps Script, configurar `SHEETS_WEBHOOK_URL` y desplegar en Vercel.
+
+## Comandos
+
+| Comando           | Acción                                       |
+| :---------------- | :------------------------------------------- |
+| `npm install`     | Instala dependencias                         |
+| `npm run dev`     | Servidor local en `localhost:4321`           |
+| `npm run build`   | Compila a `./dist/`                          |
+| `npm run preview` | Previsualiza el build                        |
+
+## Estructura
 
 ```text
 /
-├── public/
+├── google-apps-script/Codigo.gs   # doPost que escribe en la hoja
 ├── src/
+│   ├── lib/
+│   │   ├── eventos.js             # estaciones, tipos y validación (compartido)
+│   │   └── cola-cliente.js        # cola offline + sincronización (navegador)
 │   └── pages/
-│       └── index.astro
-└── package.json
+│       ├── index.astro           # UI (las 4 herramientas)
+│       └── api/registrar.js      # endpoint serverless → Google Sheet
+├── astro.config.mjs              # adaptador Vercel + esquema de env
+└── CONFIGURACION.md              # guía de setup y análisis
 ```
-
-Astro looks for `.astro` or `.md` files in the `src/pages/` directory. Each page is exposed as a route based on its file name.
-
-There's nothing special about `src/components/`, but that's where we like to put any Astro/React/Vue/Svelte/Preact components.
-
-Any static assets, like images, can be placed in the `public/` directory.
-
-## 🧞 Commands
-
-All commands are run from the root of the project, from a terminal:
-
-| Command                   | Action                                           |
-| :------------------------ | :----------------------------------------------- |
-| `npm install`             | Installs dependencies                            |
-| `npm run dev`             | Starts local dev server at `localhost:4321`      |
-| `npm run build`           | Build your production site to `./dist/`          |
-| `npm run preview`         | Preview your build locally, before deploying     |
-| `npm run astro ...`       | Run CLI commands like `astro add`, `astro check` |
-| `npm run astro -- --help` | Get help using the Astro CLI                     |
-
-## 👀 Want to learn more?
-
-Feel free to check [our documentation](https://docs.astro.build) or jump into our [Discord server](https://astro.build/chat).

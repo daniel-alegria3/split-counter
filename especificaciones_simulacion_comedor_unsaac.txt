@@ -1,0 +1,210 @@
+========================================================================
+PROYECTO DE SIMULACIÓN - COMEDOR UNIVERSITARIO UNSAAC
+Especificaciones del sistema, variables y alcance
+========================================================================
+
+------------------------------------------------------------------------
+1. OBJETIVO DEL PROYECTO
+------------------------------------------------------------------------
+Reducir las colas en el comedor universitario y estimar los recursos
+mínimos necesarios para una atención eficiente.
+
+Lo que se va a modelar:
+- Llegada de estudiantes
+- Paso por huelleros (control)
+- Entrega de bandeja
+- Cola para el servicio de comida (línea de puestos)
+- Ocupación de mesas
+- Rotación de comensales (consumo + salida)
+
+------------------------------------------------------------------------
+2. DESCRIPCIÓN FÍSICA DEL SISTEMA
+------------------------------------------------------------------------
+
+VOLUMEN TOTAL:
+- Máximo de 2650 estudiantes por día (techo de reservas del comedor
+  en un periodo). Es la carga máxima del sistema (escenario peor caso).
+- OJO: no llegan todos de golpe; se reparten a lo largo de la ventana
+  de operación (11:00 a 15:00, ~4 horas). Lo que genera colas es la
+  DISTRIBUCIÓN de esas llegadas en el tiempo (horas pico vs. valle),
+  no el total.
+- Referencia: 2650 / 240 min = ~11 estudiantes/min en promedio, pero
+  en hora pico (mediodía) puede duplicarse o triplicarse.
+- Uso recomendado: correr el escenario de 2650 (carga máxima) Y un día
+  promedio (menos reservas), para no sobredimensionar y respetar el
+  objetivo de RECURSOS MÍNIMOS.
+
+PRIMER PISO:
+- 2 huelleros (control de identidad), colocados UNO DETRÁS DEL OTRO
+  (en serie). Ambos hacen exactamente lo mismo.
+- 1 estación de entrega de bandeja (incluye fruta y pan). Es rápida.
+
+SEGUNDO PISO (se sube después de recibir la bandeja):
+- Línea de 5 puestos de comida EN SERIE, cada uno con su encargado:
+    P1: Postre
+    P2: Sopa
+    P3: Segundo
+    P4: Arroz
+    P5: Mate
+- 1 estación de AJÍ (autoservicio, opcional). Máximo 4 personas
+  sirviéndose a la vez. El alumno decide si se sirve o no.
+
+DECISIÓN DE PISO (luego de servirse):
+- El comensal decide quedarse en el 2do piso o bajar al 1er piso a comer.
+
+DEVOLUCIÓN DE BANDEJAS (al final, después de comer):
+- Punto de devolución de bandejas sucias, ubicado en el 2do piso,
+  al costado del ají.
+- Es 1 SOLO PUNTO de devolución (atendido por personal).
+- Se forma cola promedio de ~5 alumnos.
+- Es un cuello de botella de SALIDA: afecta el tiempo total en sistema
+  de cada alumno, pero como las mesas nunca se llenan, no genera atasco
+  hacia atrás en el resto del sistema.
+
+CAPACIDAD DE ASIENTOS:
+- 1er piso: 12 filas x 10 mesas x 8 sillas = 960 asientos
+- 2do piso: 10 filas x 8 mesas x 8 sillas  = 640 asientos
+- TOTAL: 1600 asientos
+- NOTA: Las mesas NUNCA se llenan. No son cuello de botella.
+  La capacidad de asientos se mantiene solo como verificación
+  (confirmar en la simulación que efectivamente nunca se satura).
+
+------------------------------------------------------------------------
+3. FLUJO DEL SISTEMA (MODELO CONCEPTUAL)
+------------------------------------------------------------------------
+
+   Llegada (cola exterior)
+        |
+        v
+   [Huellero 1] --> [Huellero 2]      (2 estaciones en serie, idénticas)
+        |
+        v
+   [Estación de bandeja: fruta + pan] (rápida)
+        |
+        v
+   subir al 2do piso
+        |
+        v
+   [P1 Postre]->[P2 Sopa]->[P3 Segundo]->[P4 Arroz]->[P5 Mate]
+                                          (5 servidores en serie)
+        |
+        v
+   [Ají] (opcional, % de alumnos, capacidad 4, autoservicio)
+        |
+        v
+   decisión: queda en 2do piso / baja al 1er piso
+        |
+        v
+   [Consumo en mesa]   (las mesas nunca se llenan -> sin restricción)
+        |
+        v
+   [Devolución de bandeja sucia]   (1 solo punto, 2do piso,
+        |                           al costado del ají, cola promedio ~5)
+        v
+   Salida
+
+------------------------------------------------------------------------
+4. PUNTOS CRÍTICOS (CUELLOS DE BOTELLA ESPERADOS)
+------------------------------------------------------------------------
+En orden de importancia para el análisis:
+
+  1. Los 2 huelleros EN SERIE: como hacen lo mismo pero están uno
+     detrás del otro, no duplican la capacidad. Todos pasan por ambos.
+     Diseño subóptimo -> candidato a mejora (probar versión PARALELO).
+
+  2. La línea de 5 puestos de servido: el throughput de toda la línea
+     lo marca el puesto MÁS LENTO. Por eso se mide cada puesto aparte.
+
+  3. La estación de bandeja: es rápida, pero se mide por si acaso.
+
+  4. La devolución de bandejas sucias (2do piso): cuello de botella de
+     SALIDA, con cola promedio de ~5. Es 1 SOLO PUNTO. No atasca
+     hacia atrás (mesas nunca llenas), pero alarga el tiempo total en
+     sistema. Palanca de mejora: probar un 2do punto de devolución.
+
+Las mesas NO son cuello de botella (nunca se llenan).
+Las preferencias de piso/fila NO afectan las colas (solo el tiempo de
+salida de cada persona).
+
+------------------------------------------------------------------------
+5. VARIABLES DEL MODELO
+------------------------------------------------------------------------
+
+5.1 VARIABLES DE ENTRADA (estocásticas)
+- Volumen total del día: máx. 2650 estudiantes (techo de reservas).
+  Sirve como carga máxima y como verificación de cierre (la suma de
+  todas las llegadas debe dar ≈2650).
+- Número de personas en cola a las 11:00 (condición inicial)
+- Tasa de llegadas por intervalo de 20 min (11:00-11:20, ..., 15:00)
+- % de personas que se mete a la fila vs. se va (balking), si aplica
+- Metros disponibles para la cola exterior (capacidad física de la fila)
+
+5.2 TIEMPOS DE SERVICIO (a medir en campo)
+- Tiempo en el huellero (un solo tiempo, aplica a ambos por ser idénticos)
+- Tiempo en la estación de bandeja
+- Tiempo en P1 Postre
+- Tiempo en P2 Sopa
+- Tiempo en P3 Segundo
+- Tiempo en P4 Arroz
+- Tiempo en P5 Mate
+- Tiempo en la estación de ají (autoservicio)
+- Tiempo de tránsito: subir al 2do piso
+- Tiempo de devolución de bandeja sucia (1 solo punto)
+
+5.3 PROBABILIDADES DE DECISIÓN (porcentajes)
+- % que se echa ají
+- % que se queda en 2do piso vs. baja al 1er piso
+  (solo afecta tiempo de salida, no las colas)
+
+5.4 OCUPACIÓN / SALIDA
+- Tiempo de consumo (cuánto se queda comiendo en la mesa)
+- Tiempo de salida
+
+5.5 VARIABLES DE DECISIÓN (lo que se optimiza / escenarios a probar)
+- Número y configuración de huelleros (serie actual vs. paralelo propuesto)
+- Número de encargados por puesto (¿poner 2 en el puesto más lento?)
+- Número de puntos de devolución de bandeja (1 actual vs. 2 propuesto)
+
+5.6 MÉTRICAS DE RESULTADO (lo que mide la simulación)
+- Tiempo promedio en cola de huelleros
+- Tiempo promedio en la línea de servido
+- Cola promedio en la devolución de bandejas (validar contra el ~5
+  observado en campo: si el modelo arroja ~5, está bien calibrado)
+- Tiempo total en el sistema (de extremo a extremo)
+- Utilización de cada huellero y de cada puesto
+- Longitud máxima de cola
+- Identificación del cuello de botella
+
+------------------------------------------------------------------------
+6. VARIABLES QUE SE DESCARTAN (y por qué)
+------------------------------------------------------------------------
+- % de tiempo con mesas llenas -> las mesas nunca se llenan.
+- Preferencia entre 1er y 2do piso -> solo afecta tiempo de salida,
+  no las colas ni los recursos mínimos.
+- Preferencia entre filas de mesas -> irrelevante para el objetivo.
+
+Estas se pueden mencionar como contexto, pero NO entran al análisis
+principal.
+
+------------------------------------------------------------------------
+7. ALCANCE RECOMENDADO
+------------------------------------------------------------------------
+El proyecto se enfoca en los DOS subsistemas que sí generan colas:
+  (A) Los huelleros
+  (B) La línea de 5 puestos de servido
+
+Todo lo demás (mesas, preferencias de piso/fila) se trata como detalle
+de contexto. Esto da un proyecto más limpio y conclusiones más claras.
+
+------------------------------------------------------------------------
+8. PENDIENTE POR DEFINIR
+------------------------------------------------------------------------
+- ENSALADA: aclarar si es uno de los 5 puestos o una estación aparte.
+  (En versiones anteriores se mencionó; falta confirmar su ubicación
+   en el flujo.)
+- Confirmar horario exacto de inicio del reparto entre 1er y 2do piso
+  (se mencionó "a partir de la 1 pm").
+
+========================================================================
+FIN DEL DOCUMENTO
+========================================================================
