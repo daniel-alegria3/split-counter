@@ -308,6 +308,8 @@ const colaEstaciones = ESTACIONES.filter((e) =>
 
 		<style>
 			* { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
+			/* El atributo hidden debe ganar a reglas con display (ej. .onboarding flex). */
+			[hidden] { display: none !important; }
 			:root {
 				--bg: #0f172a; --panel: #1e293b; --panel2: #334155;
 				--txt: #e2e8f0; --muted: #94a3b8; --accent: #38bdf8;
