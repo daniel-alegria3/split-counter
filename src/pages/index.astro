@@ -4,38 +4,57 @@ import { INTERVALOS } from '../lib/eventos.js';
 // Una "variable" = una pantalla dedicada. Se ordenan por ETAPA del flujo del
 // comedor (de la llegada a la salida) para que el menú sea intuitivo: las
 // variables aparecen en el mismo orden en que se recorre el sistema.
+// `ayuda`: indicaciones de cómo/cuándo tomar ese dato (se muestran en pantalla).
+// Las variables de cola se toman cada cierto tiempo (recordatorio con cuenta
+// regresiva); `cadaMin` define cada cuántos minutos avisa (5 por defecto).
 const ETAPAS = [
 	{ titulo: '1 · Llegada', vars: [
-		{ id: 'llegadas', nombre: 'Llegadas por intervalo', tipo: 'llegada' },
+		{ id: 'llegadas', nombre: 'Llegadas por intervalo', tipo: 'llegada',
+			ayuda: 'Toca +1 por cada estudiante que entra al comedor. El intervalo de 20 min se ajusta solo a la hora; cámbialo solo si hace falta.' },
 	] },
 	{ titulo: '2 · Huelleros', vars: [
-		{ id: 't_huellero', nombre: 'Tiempo en huellero', tipo: 'tiempo', estacion: 'huellero' },
-		{ id: 'c_huellero', nombre: 'Cola en huelleros', tipo: 'cola', estacion: 'huellero' },
+		{ id: 't_huellero', nombre: 'Tiempo en huellero', tipo: 'tiempo', estacion: 'huellero',
+			ayuda: 'Elige a una persona: toca al empezar a marcar su huella y otra vez cuando termina. Repite con muchas personas.' },
+		{ id: 'c_huellero', nombre: 'Cola en huelleros', tipo: 'cola', estacion: 'huellero', cadaMin: 5,
+			ayuda: 'Cuenta cuántas personas esperan en la cola del huellero. Toma una lectura cada 5 min; el cronómetro de abajo te avisa.' },
 	] },
 	{ titulo: '3 · Bandeja', vars: [
-		{ id: 't_bandeja', nombre: 'Tiempo en bandeja', tipo: 'tiempo', estacion: 'bandeja' },
+		{ id: 't_bandeja', nombre: 'Tiempo en bandeja', tipo: 'tiempo', estacion: 'bandeja',
+			ayuda: 'Desde que la persona llega a la estación hasta que recibe su bandeja con fruta y pan.' },
 	] },
 	{ titulo: '4 · Subir al 2do piso', vars: [
-		{ id: 't_escalera', nombre: 'Tiempo en subir', tipo: 'tiempo', estacion: 'escalera' },
+		{ id: 't_escalera', nombre: 'Tiempo en subir', tipo: 'tiempo', estacion: 'escalera',
+			ayuda: 'Desde que la persona empieza a subir las escaleras hasta que llega al 2do piso.' },
 	] },
 	{ titulo: '5 · Línea de servido', vars: [
-		{ id: 'c_linea', nombre: 'Cola en la línea', tipo: 'cola', estacion: 'P1' },
-		{ id: 't_P1', nombre: 'P1 · Postre', tipo: 'tiempo', estacion: 'P1' },
-		{ id: 't_P2', nombre: 'P2 · Sopa', tipo: 'tiempo', estacion: 'P2' },
-		{ id: 't_P3', nombre: 'P3 · Segundo', tipo: 'tiempo', estacion: 'P3' },
-		{ id: 't_P4', nombre: 'P4 · Arroz', tipo: 'tiempo', estacion: 'P4' },
-		{ id: 't_P5', nombre: 'P5 · Mate', tipo: 'tiempo', estacion: 'P5' },
+		{ id: 'c_linea', nombre: 'Cola en la línea', tipo: 'cola', estacion: 'P1', cadaMin: 5,
+			ayuda: 'Cuenta las personas esperando para entrar a la línea (antes del P1 Postre). Una lectura cada 5 min; el cronómetro avisa.' },
+		{ id: 't_P1', nombre: 'P1 · Postre', tipo: 'tiempo', estacion: 'P1',
+			ayuda: 'Tiempo que tarda el encargado en servir el postre a una persona. Toca al empezar y al terminar.' },
+		{ id: 't_P2', nombre: 'P2 · Sopa', tipo: 'tiempo', estacion: 'P2',
+			ayuda: 'Tiempo que tarda en servir la sopa a una persona. Toca al empezar y al terminar.' },
+		{ id: 't_P3', nombre: 'P3 · Segundo', tipo: 'tiempo', estacion: 'P3',
+			ayuda: 'Tiempo que tarda en servir el segundo a una persona. Toca al empezar y al terminar.' },
+		{ id: 't_P4', nombre: 'P4 · Arroz', tipo: 'tiempo', estacion: 'P4',
+			ayuda: 'Tiempo que tarda en servir el arroz a una persona. Toca al empezar y al terminar.' },
+		{ id: 't_P5', nombre: 'P5 · Mate', tipo: 'tiempo', estacion: 'P5',
+			ayuda: 'Tiempo que tarda en servir el mate a una persona. Toca al empezar y al terminar.' },
 	] },
 	{ titulo: '6 · Ají', vars: [
-		{ id: 't_aji', nombre: 'Tiempo en ají', tipo: 'tiempo', estacion: 'aji' },
-		{ id: 'd_aji', nombre: '¿Se echa ají?', tipo: 'decision', opciones: [['aji_si', 'Sí'], ['aji_no', 'No']] },
+		{ id: 't_aji', nombre: 'Tiempo en ají', tipo: 'tiempo', estacion: 'aji',
+			ayuda: 'Solo para quien se sirve ají: desde que llega a la estación hasta que termina de servirse.' },
+		{ id: 'd_aji', nombre: '¿Se echa ají?', tipo: 'decision', opciones: [['aji_si', 'Sí'], ['aji_no', 'No']],
+			ayuda: 'Por cada persona que pasa por el ají, marca Sí o No según se sirva o no.' },
 	] },
 	{ titulo: '7 · Comer', vars: [
-		{ id: 'd_piso', nombre: '¿Dónde come?', tipo: 'decision', opciones: [['piso_2', '2do piso'], ['piso_1', '1er piso']] },
+		{ id: 'd_piso', nombre: '¿Dónde come?', tipo: 'decision', opciones: [['piso_2', '2do piso'], ['piso_1', '1er piso']],
+			ayuda: 'Por cada persona que termina de servirse, marca dónde se sienta a comer: 2do o 1er piso.' },
 	] },
 	{ titulo: '8 · Devolución', vars: [
-		{ id: 't_devolucion', nombre: 'Tiempo en devolución', tipo: 'tiempo', estacion: 'devolucion' },
-		{ id: 'c_devolucion', nombre: 'Cola en devolución', tipo: 'cola', estacion: 'devolucion' },
+		{ id: 't_devolucion', nombre: 'Tiempo en devolución', tipo: 'tiempo', estacion: 'devolucion',
+			ayuda: 'Desde que la persona llega al punto de devolución hasta que entrega su bandeja sucia.' },
+		{ id: 'c_devolucion', nombre: 'Cola en devolución', tipo: 'cola', estacion: 'devolucion', cadaMin: 5,
+			ayuda: 'Cuenta las personas en cola en el punto de devolución. Toma una lectura cada 5 min; el cronómetro de abajo te avisa cuándo.' },
 	] },
 ];
 ---
@@ -90,6 +109,8 @@ const ETAPAS = [
 									data-nombre={v.nombre}
 									data-estacion={v.estacion || ''}
 									data-opciones={v.opciones ? JSON.stringify(v.opciones) : ''}
+									data-ayuda={v.ayuda || ''}
+									data-cada={v.cadaMin || ''}
 									type="button"
 								>{v.nombre}</button>
 							))}
@@ -105,9 +126,10 @@ const ETAPAS = [
 					<span id="pantalla-tit"></span>
 				</div>
 
+				<div class="indicaciones"><span class="ind-icon">ℹ</span><span id="indicaciones"></span></div>
+
 				<!-- panel: tiempo -->
 				<div data-panel="tiempo" hidden>
-					<p class="hint">Toca para iniciar cuando empiece la atención y de nuevo al terminar.</p>
 					<button id="crono-area" class="crono-area" type="button">
 						<div class="crono-estado" id="crono-estado">Toca para iniciar</div>
 						<div class="timer" id="crono-display">0.0<small>s</small></div>
@@ -134,7 +156,19 @@ const ETAPAS = [
 
 				<!-- panel: cola -->
 				<div data-panel="cola" hidden>
-					<p class="hint">Ajusta cuántas personas hay en la cola ahora y guarda.</p>
+					<div class="recordatorio" id="cola-recordatorio">
+						<div class="rec-linea">Próxima lectura en <b id="cola-countdown">5:00</b></div>
+						<div class="rec-ctrls">
+							<label>cada
+								<select id="cola-cada">
+									<option value="2">2</option>
+									<option value="5" selected>5</option>
+									<option value="10">10</option>
+								</select> min
+							</label>
+							<button id="cola-toggle" type="button">Pausar</button>
+						</div>
+					</div>
 					<div class="stepper">
 						<button id="cola-menos" class="step" type="button">−</button>
 						<div class="step-num" id="cola-num">0</div>
@@ -212,10 +246,12 @@ const ETAPAS = [
 			});
 
 			// ---- Navegación: home <-> pantalla de variable ----
-			let cur = null, relojTimer = 0;
+			let cur = null, relojTimer = 0, colaTimer = 0;
 			function abrir(cfg) {
 				cur = cfg;
+				clearInterval(relojTimer); clearInterval(colaTimer);
 				$('#pantalla-tit').textContent = cfg.nombre;
+				$('#indicaciones').textContent = cfg.ayuda || '';
 				document.querySelectorAll('#pantalla [data-panel]').forEach((p) => (p.hidden = p.dataset.panel !== cfg.tipo));
 				if (cfg.tipo === 'tiempo') prepTiempo();
 				else if (cfg.tipo === 'llegada') prepLlegada();
@@ -226,7 +262,7 @@ const ETAPAS = [
 			}
 			function volver() {
 				if (corriendo) { corriendo = false; cancelAnimationFrame(raf); }
-				clearInterval(relojTimer);
+				clearInterval(relojTimer); clearInterval(colaTimer);
 				$('#pantalla').hidden = true; $('#home').hidden = false;
 				cur = null;
 			}
@@ -236,6 +272,8 @@ const ETAPAS = [
 					id: c.dataset.id, tipo: c.dataset.tipo, nombre: c.dataset.nombre,
 					estacion: c.dataset.estacion || null,
 					opciones: c.dataset.opciones ? JSON.parse(c.dataset.opciones) : null,
+					ayuda: c.dataset.ayuda || '',
+					cadaMin: c.dataset.cada ? Number(c.dataset.cada) : 5,
 				})));
 
 			// ---- Tiempo (cronómetro: toca para iniciar/detener) ----
@@ -319,22 +357,47 @@ const ETAPAS = [
 				llegadasSesion[iv]--; pintarLlegadas(); toast('Deshecho');
 			});
 
-			// ---- Colas (stepper) ----
-			let colaVal = 0;
+			// ---- Colas (stepper + recordatorio con cuenta regresiva) ----
+			let colaVal = 0, colaCadaSeg = 300, colaRestante = 300, colaPausado = false;
 			function pintarCola() {
 				$('#cola-num').textContent = colaVal;
 				$('#cola-menos').disabled = colaVal <= 0;
 			}
+			function mmss(s) { return `${Math.floor(s / 60)}:${String(s % 60).padStart(2, '0')}`; }
+			function pintarCuenta() { $('#cola-countdown').textContent = mmss(Math.max(0, colaRestante)); }
+			function reiniciarCuenta() { colaRestante = colaCadaSeg; pintarCuenta(); }
+			function tickCola() {
+				if (colaPausado) return;
+				colaRestante--;
+				if (colaRestante <= 0) {
+					buzz([250, 120, 250]); toast('⏰ ¡Toma la cola ahora!');
+					$('#cola-recordatorio').classList.add('alarma');
+					setTimeout(() => $('#cola-recordatorio').classList.remove('alarma'), 4000);
+					colaRestante = colaCadaSeg;
+				}
+				pintarCuenta();
+			}
 			function prepCola() {
 				colaVal = 0; pintarCola();
 				$('#cola-stats').textContent = ''; $('#cola-undo').disabled = true;
+				colaCadaSeg = (cur.cadaMin || 5) * 60;
+				$('#cola-cada').value = String(cur.cadaMin || 5);
+				colaPausado = false; $('#cola-toggle').textContent = 'Pausar';
+				reiniciarCuenta();
+				clearInterval(colaTimer); colaTimer = setInterval(tickCola, 1000);
 			}
 			$('#cola-mas').addEventListener('click', () => { colaVal++; pintarCola(); buzz(); });
 			$('#cola-menos').addEventListener('click', () => { if (colaVal > 0) colaVal--; pintarCola(); buzz(); });
+			$('#cola-cada').addEventListener('change', (e) => { colaCadaSeg = Number(e.target.value) * 60; reiniciarCuenta(); });
+			$('#cola-toggle').addEventListener('click', () => {
+				colaPausado = !colaPausado;
+				$('#cola-toggle').textContent = colaPausado ? 'Reanudar' : 'Pausar';
+			});
 			$('#cola-guardar').addEventListener('click', () => {
 				encolar({ tipo: 'cola', estacion: cur.estacion, valor: colaVal });
 				$('#cola-stats').textContent = `Última: ${colaVal} en cola (${new Date().toLocaleTimeString('es-PE')})`;
 				$('#cola-undo').disabled = false;
+				reiniciarCuenta(); // reinicia el ciclo desde la lectura recién tomada
 				toast(`✓ ${colaVal} en cola guardado`); buzz(12);
 			});
 			$('#cola-undo').addEventListener('click', () => {
@@ -427,6 +490,28 @@ const ETAPAS = [
 			.volver-bar { display: flex; align-items: center; gap: .6rem; margin-bottom: .8rem; }
 			.volver { background: var(--panel); border: 1px solid var(--panel2); color: var(--txt); border-radius: 10px; padding: .5rem .8rem; font-size: .9rem; font-weight: 600; cursor: pointer; }
 			#pantalla-tit { font-size: 1.15rem; font-weight: 700; }
+
+			/* Indicaciones por variable */
+			.indicaciones {
+				display: flex; gap: .55rem; align-items: flex-start;
+				background: #0c4a6e55; border: 1px solid #38bdf855; border-radius: 12px;
+				padding: .7rem .8rem; margin-bottom: 1.1rem; font-size: .85rem; line-height: 1.45; color: #cbe8f7;
+			}
+			.indicaciones:empty, .indicaciones:has(#indicaciones:empty) { display: none; }
+			.ind-icon { color: var(--accent); font-weight: 800; flex: none; }
+
+			/* Recordatorio de cola (cuenta regresiva) */
+			.recordatorio {
+				background: var(--panel); border: 1px solid var(--panel2); border-radius: 14px;
+				padding: .8rem .9rem; margin-bottom: 1rem; text-align: center;
+			}
+			.recordatorio.alarma { animation: pulso .6s ease-in-out 6; border-color: var(--warn); }
+			@keyframes pulso { 50% { background: #f59e0b33; } }
+			.rec-linea { font-size: 1rem; }
+			.rec-linea b { font-size: 1.8rem; font-weight: 800; font-variant-numeric: tabular-nums; color: var(--accent); display: block; margin-top: .15rem; }
+			.rec-ctrls { display: flex; justify-content: center; align-items: center; gap: 1rem; margin-top: .6rem; font-size: .85rem; color: var(--muted); }
+			.rec-ctrls select { background: var(--bg); color: var(--txt); border: 1px solid var(--panel2); border-radius: 8px; padding: .2rem .35rem; font-size: .9rem; }
+			.rec-ctrls button { background: var(--panel2); color: var(--txt); border: none; border-radius: 8px; padding: .35rem .8rem; font-size: .85rem; cursor: pointer; }
 
 			/* Cronómetro */
 			.crono-area {
