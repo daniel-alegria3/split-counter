@@ -1,25 +1,43 @@
 ---
-import { ESTACIONES, INTERVALOS } from '../lib/eventos.js';
+import { INTERVALOS } from '../lib/eventos.js';
 
-// Una "variable" = una pantalla dedicada. Se agrupan en el menú de inicio.
-const tiempos = ESTACIONES.map((e) => ({
-	id: 't_' + e.id, grupo: 'Tiempos de servicio', nombre: e.nombre, tipo: 'tiempo', estacion: e.id,
-}));
-const llegadas = [
-	{ id: 'llegadas', grupo: 'Llegadas', nombre: 'Llegadas por intervalo', tipo: 'llegada' },
+// Una "variable" = una pantalla dedicada. Se ordenan por ETAPA del flujo del
+// comedor (de la llegada a la salida) para que el menú sea intuitivo: las
+// variables aparecen en el mismo orden en que se recorre el sistema.
+const ETAPAS = [
+	{ titulo: '1 · Llegada', vars: [
+		{ id: 'llegadas', nombre: 'Llegadas por intervalo', tipo: 'llegada' },
+	] },
+	{ titulo: '2 · Huelleros', vars: [
+		{ id: 't_huellero', nombre: 'Tiempo en huellero', tipo: 'tiempo', estacion: 'huellero' },
+		{ id: 'c_huellero', nombre: 'Cola en huelleros', tipo: 'cola', estacion: 'huellero' },
+	] },
+	{ titulo: '3 · Bandeja', vars: [
+		{ id: 't_bandeja', nombre: 'Tiempo en bandeja', tipo: 'tiempo', estacion: 'bandeja' },
+	] },
+	{ titulo: '4 · Subir al 2do piso', vars: [
+		{ id: 't_escalera', nombre: 'Tiempo en subir', tipo: 'tiempo', estacion: 'escalera' },
+	] },
+	{ titulo: '5 · Línea de servido', vars: [
+		{ id: 'c_linea', nombre: 'Cola en la línea', tipo: 'cola', estacion: 'P1' },
+		{ id: 't_P1', nombre: 'P1 · Postre', tipo: 'tiempo', estacion: 'P1' },
+		{ id: 't_P2', nombre: 'P2 · Sopa', tipo: 'tiempo', estacion: 'P2' },
+		{ id: 't_P3', nombre: 'P3 · Segundo', tipo: 'tiempo', estacion: 'P3' },
+		{ id: 't_P4', nombre: 'P4 · Arroz', tipo: 'tiempo', estacion: 'P4' },
+		{ id: 't_P5', nombre: 'P5 · Mate', tipo: 'tiempo', estacion: 'P5' },
+	] },
+	{ titulo: '6 · Ají', vars: [
+		{ id: 't_aji', nombre: 'Tiempo en ají', tipo: 'tiempo', estacion: 'aji' },
+		{ id: 'd_aji', nombre: '¿Se echa ají?', tipo: 'decision', opciones: [['aji_si', 'Sí'], ['aji_no', 'No']] },
+	] },
+	{ titulo: '7 · Comer', vars: [
+		{ id: 'd_piso', nombre: '¿Dónde come?', tipo: 'decision', opciones: [['piso_2', '2do piso'], ['piso_1', '1er piso']] },
+	] },
+	{ titulo: '8 · Devolución', vars: [
+		{ id: 't_devolucion', nombre: 'Tiempo en devolución', tipo: 'tiempo', estacion: 'devolucion' },
+		{ id: 'c_devolucion', nombre: 'Cola en devolución', tipo: 'cola', estacion: 'devolucion' },
+	] },
 ];
-const colas = [
-	{ id: 'c_huellero', nombre: 'Cola en huelleros', estacion: 'huellero' },
-	{ id: 'c_linea', nombre: 'Cola en línea de servido', estacion: 'P1' },
-	{ id: 'c_devolucion', nombre: 'Cola en devolución', estacion: 'devolucion' },
-].map((c) => ({ ...c, grupo: 'Colas', tipo: 'cola' }));
-const decisiones = [
-	{ id: 'd_aji', grupo: 'Decisiones', nombre: '¿Se echa ají?', tipo: 'decision', opciones: [['aji_si', 'Sí'], ['aji_no', 'No']] },
-	{ id: 'd_piso', grupo: 'Decisiones', nombre: '¿Dónde come?', tipo: 'decision', opciones: [['piso_2', '2do piso'], ['piso_1', '1er piso']] },
-];
-
-const VARIABLES = [...tiempos, ...llegadas, ...colas, ...decisiones];
-const GRUPOS = ['Tiempos de servicio', 'Llegadas', 'Colas', 'Decisiones'];
 ---
 
 <html lang="es">
@@ -60,11 +78,11 @@ const GRUPOS = ['Tiempos de servicio', 'Llegadas', 'Colas', 'Decisiones'];
 		<main>
 			<!-- INICIO: menú de variables -->
 			<section id="home" class="screen">
-				{GRUPOS.map((g) => (
+				{ETAPAS.map((et) => (
 					<div class="grupo-menu">
-						<h2 class="grupo-tit">{g}</h2>
+						<h2 class="grupo-tit">{et.titulo}</h2>
 						<div class="menu">
-							{VARIABLES.filter((v) => v.grupo === g).map((v) => (
+							{et.vars.map((v) => (
 								<button
 									class="var-card"
 									data-id={v.id}
