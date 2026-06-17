@@ -6,6 +6,6 @@ import Variables from '@/components/variables.astro';
 <Layout title="Split Counter" pageName="index">
     <Variables/>
     <div class="block">
-        <a href="/counter" class="button button-fill button-large external">Go to Counter</a>
+        <a href={`${import.meta.env.BASE_URL}counter`} class="button button-fill button-large external">Go to Counter</a>
     </div>
 </Layout>
