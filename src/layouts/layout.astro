@@ -3,7 +3,7 @@ import 'framework7/css/bundle'
 import 'framework7-icons/css/framework7-icons.css'
 import '@/styles/global.css'
 
-const { title = 'Split Counter', pageName = 'index' } = Astro.props
+const { title = 'Split Counter', pageName = 'index', backHref } = Astro.props
 ---
 
 <html lang="en" class="md">
@@ -22,6 +22,14 @@ const { title = 'Split Counter', pageName = 'index' } = Astro.props
           <div class="navbar">
             <div class="navbar-bg"></div>
             <div class="navbar-inner">
+              {backHref && (
+                <div class="left">
+                  <a href={backHref} class="link external">
+                    <i class="icon icon-back"></i>
+                    <span class="if-md-not">Back</span>
+                  </a>
+                </div>
+              )}
               <div class="title">{title}</div>
             </div>
           </div>

@@ -1,53 +1,29 @@
 ---
 ---
-<section class="page-section">
-  <div class="block-title">Add a variable</div>
+<div class="block-title">Add a variable</div>
 
-  <div class="list inset">
-    <ul>
-      <li class="item-content item-input">
-        <div class="item-inner">
-          <div class="item-title item-label">Name</div>
-          <div class="item-input-wrap">
-            <input type="text" id="var-input" placeholder="e.g. maxPlayers" autocomplete="off" />
-          </div>
+<div class="list inset">
+  <ul>
+    <li class="item-content item-input">
+      <div class="item-inner">
+        <div class="item-title item-label">Name</div>
+        <div class="item-input-wrap">
+          <input type="text" id="var-input" placeholder="e.g. maxPlayers" autocomplete="off" />
         </div>
-      </li>
-    </ul>
-  </div>
+      </div>
+    </li>
+  </ul>
+</div>
 
-  <div class="block">
-    <button class="button button-fill button-large" id="add-var-btn" disabled>Add</button>
-  </div>
+<div class="block">
+  <button class="button button-fill button-large" id="add-var-btn" disabled>Add</button>
+</div>
 
-  <div class="block-title">Variables</div>
-  <div class="list inset" id="var-list">
-    <ul></ul>
-    <div class="block-footer" id="var-empty">No variables yet. Add one above.</div>
-  </div>
-</section>
-
-<style>
-  .page-section {
-    padding-block: var(--section-gap);
-  }
-  #var-empty {
-    padding: 12px 16px;
-    color: var(--text-muted);
-    font-size: 14px;
-  }
-  .var-delete {
-    background: transparent;
-    border: 0;
-    color: var(--f7-theme-color);
-    font-size: 15px;
-    padding: 4px 8px;
-    cursor: pointer;
-  }
-  .var-delete:active {
-    opacity: 0.6;
-  }
-</style>
+<div class="block-title">Variables</div>
+<div class="list inset" id="var-list">
+  <ul></ul>
+  <div class="block-footer" id="var-empty">No variables yet. Add one above.</div>
+</div>
 
 <script>
   import { variablesStore } from '@/stores/variables'
@@ -57,28 +33,28 @@
   const ul = document.querySelector('#var-list ul') as HTMLUListElement
   const empty = document.getElementById('var-empty') as HTMLDivElement
 
-  function escapeHtml(s: string) {
-    return s.replace(/[&<>"']/g, (c) =>
-      ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' })[c]!
-    )
+  function renderRow(name: string, id: string) {
+    const tpl = document.createElement('template')
+    tpl.innerHTML = `
+      <li class="item-content">
+        <div class="item-inner">
+          <div class="item-title"></div>
+          <div class="item-after">
+            <a class="link" data-action="delete">Delete</a>
+          </div>
+        </div>
+      </li>`
+    const li = tpl.content.firstElementChild as HTMLLIElement
+    li.dataset.id = id
+    li.querySelector('.item-title')!.textContent = name
+    li.querySelector('[data-action="delete"]')!.setAttribute('aria-label', `Delete ${name}`)
+    return li
   }
 
   function render() {
     const vars = variablesStore.get()
     empty.style.display = vars.length ? 'none' : ''
-    ul.innerHTML = vars
-      .map(
-        (v) => `
-          <li class="item-content" data-id="${v.id}">
-            <div class="item-inner">
-              <div class="item-title">${escapeHtml(v.name)}</div>
-              <div class="item-after">
-                <button class="var-delete" data-action="delete" aria-label="Delete ${escapeHtml(v.name)}">Delete</button>
-              </div>
-            </div>
-          </li>`
-      )
-      .join('')
+    ul.replaceChildren(...vars.map((v) => renderRow(v.name, v.id)))
   }
 
   variablesStore.subscribe(render)

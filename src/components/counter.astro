@@ -1,19 +1,112 @@
 ---
 ---
-<section class="page-section">
-  <div class="block-title">Counter</div>
-  <div class="block block-strong inset">
-    <p class="counter-placeholder">Counter UI coming soon.</p>
-  </div>
-</section>
+<div class="block-title">Counter</div>
 
-<style>
-  .page-section {
-    padding-block: var(--section-gap);
+<div class="list inset" id="counter-list">
+  <ul></ul>
+  <div class="block-footer" id="counter-empty">
+    No variables yet. Add some in the Variables page.
+  </div>
+</div>
+
+<div class="block">
+  <button class="button button-fill button-large" id="download-csv-btn">
+    Download CSV
+  </button>
+</div>
+
+<script>
+  import { variablesStore } from '@/stores/variables'
+  import { countsStore } from '@/stores/counts'
+
+  const ul = document.querySelector('#counter-list ul') as HTMLUListElement
+  const empty = document.getElementById('counter-empty') as HTMLDivElement
+  const downloadBtn = document.getElementById('download-csv-btn') as HTMLButtonElement
+
+  function renderRow(name: string, n: number, id: string) {
+    const tpl = document.createElement('template')
+    tpl.innerHTML = `
+      <li class="item-content">
+        <div class="item-inner">
+          <div class="item-title"></div>
+          <div class="item-after">
+            <div class="stepper stepper-small stepper-round stepper-fill">
+              <div class="stepper-button-minus" data-action="dec"></div>
+              <div class="stepper-input-wrap"><span></span></div>
+              <div class="stepper-button-plus" data-action="inc"></div>
+            </div>
+          </div>
+        </div>
+      </li>`
+    const li = tpl.content.firstElementChild as HTMLLIElement
+    li.dataset.id = id
+    li.querySelector('.item-title')!.textContent = name
+    li.querySelector('.stepper-input-wrap span')!.textContent = String(n)
+    const minus = li.querySelector('[data-action="dec"]') as HTMLElement
+    const plus = li.querySelector('[data-action="inc"]') as HTMLElement
+    minus.setAttribute('aria-label', `Decrement ${name}`)
+    plus.setAttribute('aria-label', `Increment ${name}`)
+    return li
   }
-  .counter-placeholder {
-    margin: 0;
-    color: var(--text-muted);
-    text-align: center;
+
+  function render() {
+    const vars = variablesStore.get()
+    const counts = countsStore.get()
+    empty.style.display = vars.length ? 'none' : ''
+    downloadBtn.disabled = vars.length === 0
+
+    ul.replaceChildren(
+      ...vars.map((v) => renderRow(v.name, counts[v.id]?.length ?? 0, v.id))
+    )
   }
-</style>
+
+  variablesStore.subscribe(render)
+  countsStore.subscribe(render)
+
+  ul.addEventListener('click', (e) => {
+    const target = (e.target as HTMLElement).closest('[data-action]') as HTMLElement | null
+    const action = target?.dataset.action
+    if (action !== 'inc' && action !== 'dec') return
+    const li = target!.closest('li') as HTMLLIElement | null
+    const id = li?.dataset.id
+    if (!id) return
+
+    const counts = countsStore.get()
+    const current = counts[id] ?? []
+    if (action === 'inc') {
+      countsStore.set({ ...counts, [id]: [...current, new Date().toISOString()] })
+    } else {
+      if (current.length === 0) return
+      countsStore.set({ ...counts, [id]: current.slice(0, -1) })
+    }
+  })
+
+  function csvEscape(s: string) {
+    return /[",\n\r]/.test(s) ? `"${s.replace(/"/g, '""')}"` : s
+  }
+
+  function buildCsv() {
+    const vars = variablesStore.get()
+    const counts = countsStore.get()
+    const rows = [['variable', 'timestamp']]
+    for (const v of vars) {
+      for (const ts of counts[v.id] ?? []) {
+        rows.push([v.name, ts])
+      }
+    }
+    return rows.map((r) => r.map(csvEscape).join(',')).join('\n')
+  }
+
+  downloadBtn.addEventListener('click', () => {
+    const csv = buildCsv()
+    const blob = new Blob([csv], { type: 'text/csv;charset=utf-8' })
+    const url = URL.createObjectURL(blob)
+    const a = document.createElement('a')
+    const stamp = new Date().toISOString().replace(/[:.]/g, '-')
+    a.href = url
+    a.download = `split-counter-${stamp}.csv`
+    a.className = 'external'
+    a.click()
+    URL.revokeObjectURL(url)
+  })
+</script>
