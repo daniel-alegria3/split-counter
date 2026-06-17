@@ -44,7 +44,7 @@ export function pendientes() {
 	return leer().length;
 }
 
-/** Encola un evento (le añade observador y timestamp) y dispara una sincronización. */
+/** Encola un evento (le añade observador y timestamp) y programa el envío. */
 export function encolar(ev) {
 	const completo = {
 		...ev,
@@ -54,11 +54,33 @@ export function encolar(ev) {
 	const arr = leer();
 	arr.push(completo);
 	escribir(arr);
-	sincronizar();
+	programarSync(); // espera unos segundos antes de enviar (ventana para deshacer)
 	return completo;
 }
 
+/**
+ * Quita el último evento pendiente (aún no enviado) para deshacer una toma
+ * por error. `match` opcional valida que el último sea el esperado; si ya se
+ * envió o no coincide, devuelve null y no quita nada.
+ */
+export function quitarUltimo(match) {
+	const arr = leer();
+	if (arr.length === 0) return null;
+	const ult = arr[arr.length - 1];
+	if (match && !match(ult)) return null;
+	arr.pop();
+	escribir(arr);
+	return ult;
+}
+
 let sincronizando = false;
+let timerSync = 0;
+
+/** Agenda una sincronización con retraso (debounce): da margen para deshacer. */
+export function programarSync(ms = 4000) {
+	clearTimeout(timerSync);
+	timerSync = setTimeout(sincronizar, ms);
+}
 
 /** Intenta enviar todos los pendientes en un solo lote. Reintenta si falla. */
 export async function sincronizar() {

@@ -76,7 +76,7 @@ const ETAPAS = [
 		</header>
 
 		<main>
-			<!-- INICIO: menú de variables -->
+			<!-- INICIO: menú de variables por etapa del flujo -->
 			<section id="home" class="screen">
 				{ETAPAS.map((et) => (
 					<div class="grupo-menu">
@@ -107,49 +107,57 @@ const ETAPAS = [
 
 				<!-- panel: tiempo -->
 				<div data-panel="tiempo" hidden>
-					<p class="hint">Inicia y detén al terminar el servicio. Cada toma se guarda sola.</p>
-					<div class="timer-wrap">
+					<p class="hint">Toca para iniciar cuando empiece la atención y de nuevo al terminar.</p>
+					<button id="crono-area" class="crono-area" type="button">
+						<div class="crono-estado" id="crono-estado">Toca para iniciar</div>
 						<div class="timer" id="crono-display">0.0<small>s</small></div>
-						<button id="crono-btn" class="btn-huge" type="button">Iniciar</button>
-					</div>
+					</button>
+					<button id="crono-undo" class="btn-secondary" type="button" disabled>Deshacer última</button>
 					<div class="stats" id="crono-stats"></div>
 					<ul class="recientes" id="crono-recientes"></ul>
 				</div>
 
 				<!-- panel: llegada -->
 				<div data-panel="llegada" hidden>
-					<p class="hint">Cada toque cuenta un estudiante que llega, en el intervalo seleccionado.</p>
+					<div class="reloj" id="reloj">--:--</div>
 					<label class="campo">
-						Intervalo de 20 min
+						Intervalo (sigue el reloj; puedes cambiarlo)
 						<select id="intervalo-sel">
 							{INTERVALOS.map((iv) => (<option value={iv}>{iv}</option>))}
 						</select>
 					</label>
 					<div class="contador-grande" id="llegadas-count">0</div>
-					<div class="hint center">en este intervalo (esta sesión)</div>
+					<div class="hint center">llegadas en este intervalo</div>
 					<button id="llegadas-mas" class="btn-huge tap" type="button">+1 llegada</button>
-					<button id="llegadas-undo" class="btn-secondary" type="button">Deshacer último</button>
+					<button id="llegadas-undo" class="btn-secondary" type="button" disabled>Deshacer última</button>
 				</div>
 
 				<!-- panel: cola -->
 				<div data-panel="cola" hidden>
-					<p class="hint">Anota cuántas personas hay en cola en este momento.</p>
-					<label class="campo">
-						Personas en cola
-						<input id="cola-num" type="number" inputmode="numeric" min="0" step="1" value="5" />
-					</label>
+					<p class="hint">Ajusta cuántas personas hay en la cola ahora y guarda.</p>
+					<div class="stepper">
+						<button id="cola-menos" class="step" type="button">−</button>
+						<div class="step-num" id="cola-num">0</div>
+						<button id="cola-mas" class="step" type="button">+</button>
+					</div>
 					<button id="cola-guardar" class="btn-huge" type="button">Guardar observación</button>
+					<button id="cola-undo" class="btn-secondary" type="button" disabled>Deshacer última</button>
 					<div class="stats" id="cola-stats"></div>
 				</div>
 
 				<!-- panel: decisión -->
 				<div data-panel="decision" hidden>
-					<p class="hint">Un toque = una persona.</p>
 					<h3 id="dec-q"></h3>
 					<div class="par">
-						<button class="btn-dec si" id="dec-a" type="button"><span id="dec-a-l"></span> <b id="dec-a-n">0</b></button>
-						<button class="btn-dec no" id="dec-b" type="button"><span id="dec-b-l"></span> <b id="dec-b-n">0</b></button>
+						<button class="btn-dec si" id="dec-a" type="button">
+							<span id="dec-a-l"></span><b id="dec-a-n">0</b><small id="dec-a-p">0%</small>
+						</button>
+						<button class="btn-dec no" id="dec-b" type="button">
+							<span id="dec-b-l"></span><b id="dec-b-n">0</b><small id="dec-b-p">0%</small>
+						</button>
 					</div>
+					<div class="stats" id="dec-stats">Sin registros aún.</div>
+					<button id="dec-undo" class="btn-secondary" type="button" disabled>Deshacer última</button>
 				</div>
 			</section>
 		</main>
@@ -157,7 +165,7 @@ const ETAPAS = [
 		<div id="toast" class="toast" hidden></div>
 
 		<script>
-			import { alCambiar, getObservador, setObservador, encolar, iniciarSync } from '../lib/cola-cliente.js';
+			import { alCambiar, getObservador, setObservador, encolar, quitarUltimo, iniciarSync } from '../lib/cola-cliente.js';
 			import { intervaloDe } from '../lib/eventos.js';
 
 			const $ = (s) => document.querySelector(s);
@@ -166,6 +174,7 @@ const ETAPAS = [
 				t.textContent = msg; t.hidden = false;
 				clearTimeout(t._t); t._t = setTimeout(() => (t.hidden = true), 1600);
 			};
+			const buzz = (ms = 8) => { if (navigator.vibrate) navigator.vibrate(ms); };
 
 			// ---- Observador / onboarding ----
 			function pintarObs() { $('#obs-nombre').textContent = getObservador() || '—'; }
@@ -203,7 +212,7 @@ const ETAPAS = [
 			});
 
 			// ---- Navegación: home <-> pantalla de variable ----
-			let cur = null;
+			let cur = null, relojTimer = 0;
 			function abrir(cfg) {
 				cur = cfg;
 				$('#pantalla-tit').textContent = cfg.nombre;
@@ -217,6 +226,7 @@ const ETAPAS = [
 			}
 			function volver() {
 				if (corriendo) { corriendo = false; cancelAnimationFrame(raf); }
+				clearInterval(relojTimer);
 				$('#pantalla').hidden = true; $('#home').hidden = false;
 				cur = null;
 			}
@@ -228,7 +238,7 @@ const ETAPAS = [
 					opciones: c.dataset.opciones ? JSON.parse(c.dataset.opciones) : null,
 				})));
 
-			// ---- Tiempo ----
+			// ---- Tiempo (cronómetro: toca para iniciar/detener) ----
 			let t0 = 0, corriendo = false, raf = 0;
 			const muestras = {};
 			function tick() {
@@ -238,79 +248,131 @@ const ETAPAS = [
 			}
 			function statsTiempo() {
 				const arr = muestras[cur.estacion] || [];
-				$('#crono-stats').textContent = arr.length
-					? `${arr.length} toma(s) · promedio ${(arr.reduce((a, b) => a + b, 0) / arr.length).toFixed(1)} s`
-					: 'Sin tomas aún en esta variable.';
+				if (arr.length) {
+					const prom = arr.reduce((a, b) => a + b, 0) / arr.length;
+					$('#crono-stats').textContent = `${arr.length} toma(s) · promedio ${prom.toFixed(1)} s · última ${arr[arr.length - 1].toFixed(1)} s`;
+				} else {
+					$('#crono-stats').textContent = 'Aún no hay tomas en esta variable.';
+				}
 				$('#crono-recientes').innerHTML = arr.slice(-6).reverse().map((v) => `<li>${v.toFixed(1)} s</li>`).join('');
+				$('#crono-undo').disabled = arr.length === 0;
 			}
 			function prepTiempo() {
 				corriendo = false; cancelAnimationFrame(raf);
 				$('#crono-display').innerHTML = '0.0<small>s</small>';
-				const b = $('#crono-btn'); b.textContent = 'Iniciar'; b.classList.remove('stop');
+				$('#crono-estado').textContent = 'Toca para iniciar';
+				$('#crono-area').classList.remove('run');
 				statsTiempo();
 			}
-			$('#crono-btn').addEventListener('click', () => {
-				const b = $('#crono-btn');
+			$('#crono-area').addEventListener('click', () => {
 				if (!corriendo) {
 					corriendo = true; t0 = performance.now();
-					b.textContent = 'Detener'; b.classList.add('stop'); tick();
+					$('#crono-estado').textContent = 'Atendiendo… toca para detener';
+					$('#crono-area').classList.add('run'); buzz(); tick();
 				} else {
 					corriendo = false; cancelAnimationFrame(raf);
-					const s = (performance.now() - t0) / 1000;
-					b.textContent = 'Iniciar'; b.classList.remove('stop');
+					const s = Math.round(((performance.now() - t0) / 1000) * 10) / 10;
+					$('#crono-area').classList.remove('run');
+					$('#crono-estado').textContent = 'Toca para iniciar';
+					$('#crono-display').innerHTML = '0.0<small>s</small>';
 					(muestras[cur.estacion] ||= []).push(s);
-					encolar({ tipo: 'tiempo', estacion: cur.estacion, valor: Math.round(s * 10) / 10 });
-					statsTiempo(); toast(`Guardado: ${s.toFixed(1)} s`);
+					encolar({ tipo: 'tiempo', estacion: cur.estacion, valor: s });
+					statsTiempo(); toast(`✓ ${s.toFixed(1)} s guardado`); buzz(12);
 				}
+			});
+			$('#crono-undo').addEventListener('click', () => {
+				const arr = muestras[cur.estacion] || [];
+				if (!arr.length) return;
+				const ok = quitarUltimo((ev) => ev.tipo === 'tiempo' && ev.estacion === cur.estacion);
+				if (!ok) { toast('Ya se envió, no se puede deshacer'); return; }
+				arr.pop(); statsTiempo(); toast('Última toma deshecha');
 			});
 
 			// ---- Llegadas ----
 			const llegadasSesion = {};
 			const ivSel = $('#intervalo-sel');
-			function pintarLlegadas() { $('#llegadas-count').textContent = llegadasSesion[ivSel.value] || 0; }
-			function prepLlegada() { if (!ivSel.value) ivSel.value = intervaloDe() || ivSel.options[0].value; pintarLlegadas(); }
+			function pintarReloj() {
+				$('#reloj').textContent = new Date().toLocaleTimeString('es-PE', { hour: '2-digit', minute: '2-digit' });
+			}
+			function pintarLlegadas() {
+				const n = llegadasSesion[ivSel.value] || 0;
+				$('#llegadas-count').textContent = n;
+				$('#llegadas-undo').disabled = n === 0;
+			}
+			function prepLlegada() {
+				const iv = intervaloDe();
+				ivSel.value = iv || ivSel.value || ivSel.options[0].value;
+				pintarReloj(); pintarLlegadas();
+				clearInterval(relojTimer); relojTimer = setInterval(pintarReloj, 1000);
+			}
 			ivSel.addEventListener('change', pintarLlegadas);
 			$('#llegadas-mas').addEventListener('click', () => {
 				const iv = ivSel.value;
 				llegadasSesion[iv] = (llegadasSesion[iv] || 0) + 1;
-				pintarLlegadas();
-				encolar({ tipo: 'llegada', valor: 1, intervalo: iv });
-				if (navigator.vibrate) navigator.vibrate(8);
+				pintarLlegadas(); encolar({ tipo: 'llegada', valor: 1, intervalo: iv }); buzz();
 			});
 			$('#llegadas-undo').addEventListener('click', () => {
 				const iv = ivSel.value;
-				if (!llegadasSesion[iv]) { toast('Nada que deshacer'); return; }
-				llegadasSesion[iv]--; pintarLlegadas();
-				encolar({ tipo: 'llegada', valor: 0, intervalo: iv, notas: 'deshacer (-1)' });
-				toast('Deshecho');
+				if (!(llegadasSesion[iv] > 0)) { toast('Nada que deshacer'); return; }
+				const ok = quitarUltimo((ev) => ev.tipo === 'llegada' && ev.intervalo === iv);
+				if (!ok) { toast('Ya se envió, no se puede deshacer'); return; }
+				llegadasSesion[iv]--; pintarLlegadas(); toast('Deshecho');
 			});
 
-			// ---- Colas ----
-			function prepCola() { $('#cola-stats').textContent = ''; }
+			// ---- Colas (stepper) ----
+			let colaVal = 0;
+			function pintarCola() {
+				$('#cola-num').textContent = colaVal;
+				$('#cola-menos').disabled = colaVal <= 0;
+			}
+			function prepCola() {
+				colaVal = 0; pintarCola();
+				$('#cola-stats').textContent = ''; $('#cola-undo').disabled = true;
+			}
+			$('#cola-mas').addEventListener('click', () => { colaVal++; pintarCola(); buzz(); });
+			$('#cola-menos').addEventListener('click', () => { if (colaVal > 0) colaVal--; pintarCola(); buzz(); });
 			$('#cola-guardar').addEventListener('click', () => {
-				const n = Number($('#cola-num').value);
-				if (!Number.isFinite(n) || n < 0) { toast('Número inválido'); return; }
-				encolar({ tipo: 'cola', estacion: cur.estacion, valor: n });
-				$('#cola-stats').textContent = `Última: ${n} (${new Date().toLocaleTimeString('es-PE')})`;
-				toast('Cola registrada');
+				encolar({ tipo: 'cola', estacion: cur.estacion, valor: colaVal });
+				$('#cola-stats').textContent = `Última: ${colaVal} en cola (${new Date().toLocaleTimeString('es-PE')})`;
+				$('#cola-undo').disabled = false;
+				toast(`✓ ${colaVal} en cola guardado`); buzz(12);
+			});
+			$('#cola-undo').addEventListener('click', () => {
+				const ok = quitarUltimo((ev) => ev.tipo === 'cola' && ev.estacion === cur.estacion);
+				if (!ok) { toast('Ya se envió, no se puede deshacer'); return; }
+				$('#cola-stats').textContent = 'Última observación deshecha';
+				$('#cola-undo').disabled = true; toast('Deshecho');
 			});
 
-			// ---- Decisiones ----
+			// ---- Decisiones (con % en vivo) ----
 			const decSesion = {};
+			function pintarDecision() {
+				const a = decSesion[cur._va] || 0, b = decSesion[cur._vb] || 0, tot = a + b;
+				$('#dec-a-n').textContent = a; $('#dec-b-n').textContent = b;
+				$('#dec-a-p').textContent = tot ? Math.round((a / tot) * 100) + '%' : '0%';
+				$('#dec-b-p').textContent = tot ? Math.round((b / tot) * 100) + '%' : '0%';
+				$('#dec-stats').textContent = tot ? `${tot} registrada(s)` : 'Sin registros aún.';
+				$('#dec-undo').disabled = !cur._last;
+			}
 			function prepDecision() {
 				const [[va, la], [vb, lb]] = cur.opciones;
+				cur._va = va; cur._vb = vb; cur._last = null;
 				$('#dec-q').textContent = cur.nombre;
-				$('#dec-a').dataset.dec = va; $('#dec-a-l').textContent = la; $('#dec-a-n').textContent = decSesion[va] || 0;
-				$('#dec-b').dataset.dec = vb; $('#dec-b-l').textContent = lb; $('#dec-b-n').textContent = decSesion[vb] || 0;
+				$('#dec-a').dataset.dec = va; $('#dec-a-l').textContent = la;
+				$('#dec-b').dataset.dec = vb; $('#dec-b-l').textContent = lb;
+				pintarDecision();
 			}
-			['#dec-a', '#dec-b'].forEach((sel) => {
-				$(sel).addEventListener('click', (e) => {
-					const btn = e.currentTarget, d = btn.dataset.dec;
-					decSesion[d] = (decSesion[d] || 0) + 1;
-					btn.querySelector('b').textContent = decSesion[d];
-					encolar({ tipo: 'decision', valor: d });
-					if (navigator.vibrate) navigator.vibrate(8);
-				});
+			['#dec-a', '#dec-b'].forEach((sel) => $(sel).addEventListener('click', (e) => {
+				const d = e.currentTarget.dataset.dec;
+				decSesion[d] = (decSesion[d] || 0) + 1; cur._last = d;
+				pintarDecision(); encolar({ tipo: 'decision', valor: d }); buzz();
+			}));
+			$('#dec-undo').addEventListener('click', () => {
+				if (!cur._last) return;
+				const ok = quitarUltimo((ev) => ev.tipo === 'decision' && ev.valor === cur._last);
+				if (!ok) { toast('Ya se envió, no se puede deshacer'); return; }
+				decSesion[cur._last] = Math.max(0, (decSesion[cur._last] || 0) - 1);
+				cur._last = null; pintarDecision(); toast('Deshecho');
 			});
 
 			// ---- Arranque ----
@@ -332,8 +394,8 @@ const ETAPAS = [
 				padding-bottom: 2rem; min-height: 100vh;
 			}
 			h2 { font-size: 1.15rem; margin: 0; }
-			h3 { font-size: 1rem; margin: 0 0 .6rem; color: var(--txt); font-weight: 700; text-align: center; }
-			.hint { color: var(--muted); font-size: .82rem; margin: 0 0 1rem; line-height: 1.4; }
+			h3 { font-size: 1.1rem; margin: 0 0 .8rem; color: var(--txt); font-weight: 700; text-align: center; }
+			.hint { color: var(--muted); font-size: .85rem; margin: 0 0 1rem; line-height: 1.4; }
 			.hint.center { text-align: center; }
 
 			.top {
@@ -366,38 +428,66 @@ const ETAPAS = [
 			.volver { background: var(--panel); border: 1px solid var(--panel2); color: var(--txt); border-radius: 10px; padding: .5rem .8rem; font-size: .9rem; font-weight: 600; cursor: pointer; }
 			#pantalla-tit { font-size: 1.15rem; font-weight: 700; }
 
-			.timer-wrap { text-align: center; margin: 1rem 0; }
-			.timer { font-size: 3.6rem; font-weight: 800; font-variant-numeric: tabular-nums; letter-spacing: -1px; }
+			/* Cronómetro */
+			.crono-area {
+				width: 100%; border: 2px solid var(--panel2); border-radius: 20px;
+				background: var(--panel); color: var(--txt); padding: 2.4rem 1rem; cursor: pointer;
+				display: flex; flex-direction: column; gap: .5rem; align-items: center;
+			}
+			.crono-area.run { background: #0c4a6e; border-color: var(--accent); }
+			.crono-area:active { filter: brightness(1.1); }
+			.crono-estado { color: var(--muted); font-size: .95rem; font-weight: 600; }
+			.crono-area.run .crono-estado { color: var(--accent); }
+			.timer { font-size: 3.8rem; font-weight: 800; font-variant-numeric: tabular-nums; letter-spacing: -1px; }
 			.timer small { font-size: 1.2rem; color: var(--muted); margin-left: .2rem; }
+
+			/* Reloj (llegadas) */
+			.reloj { text-align: center; font-size: 1.5rem; font-weight: 700; font-variant-numeric: tabular-nums; margin-bottom: .6rem; }
+
+			/* Stepper (colas) */
+			.stepper { display: grid; grid-template-columns: 1fr 1.3fr 1fr; gap: .6rem; margin: 1.2rem 0; }
+			.step {
+				border: none; border-radius: 16px; background: var(--panel2); color: var(--txt);
+				font-size: 2.6rem; font-weight: 800; cursor: pointer; padding: .9rem; line-height: 1;
+			}
+			.step:active { filter: brightness(1.2); }
+			.step:disabled { opacity: .35; }
+			.step-num {
+				display: flex; align-items: center; justify-content: center;
+				font-size: 3.2rem; font-weight: 800; font-variant-numeric: tabular-nums;
+				background: var(--panel); border-radius: 16px;
+			}
 
 			.btn-huge {
 				display: block; width: 100%; border: none; border-radius: 16px;
 				background: var(--accent); color: #04293a; font-size: 1.4rem; font-weight: 800;
-				padding: 1.1rem; margin-top: .8rem; cursor: pointer;
+				padding: 1.1rem; margin-top: .4rem; cursor: pointer;
 			}
 			.btn-huge.stop { background: var(--stop); color: #fff; }
 			.btn-huge.tap:active { transform: scale(.98); }
 			.btn-primary { width: 100%; border: none; border-radius: 12px; background: var(--accent); color: #04293a; font-weight: 700; padding: .9rem; font-size: 1rem; cursor: pointer; }
 			.btn-secondary { width: 100%; border: 1px solid var(--panel2); background: transparent; color: var(--muted); border-radius: 12px; padding: .8rem; margin-top: .6rem; font-size: .9rem; cursor: pointer; }
+			.btn-secondary:disabled { opacity: .35; }
 
 			.stats { color: var(--muted); font-size: .85rem; margin-top: .9rem; text-align: center; }
 			.recientes { list-style: none; padding: 0; margin: .6rem 0 0; display: flex; flex-wrap: wrap; gap: .4rem; justify-content: center; }
 			.recientes li { background: var(--panel); border-radius: 8px; padding: .25rem .55rem; font-size: .8rem; font-variant-numeric: tabular-nums; }
 
 			.campo { display: block; color: var(--muted); font-size: .82rem; margin-bottom: 1rem; }
-			.campo select, .campo input {
+			.campo select {
 				display: block; width: 100%; margin-top: .35rem; padding: .8rem;
 				background: var(--panel); color: var(--txt); border: 1px solid var(--panel2);
 				border-radius: 12px; font-size: 1.1rem;
 			}
-			.contador-grande { text-align: center; font-size: 5rem; font-weight: 800; font-variant-numeric: tabular-nums; line-height: 1; margin: .5rem 0 .2rem; }
+			.contador-grande { text-align: center; font-size: 5.2rem; font-weight: 800; font-variant-numeric: tabular-nums; line-height: 1; margin: .3rem 0 .2rem; }
 
 			.par { display: grid; grid-template-columns: 1fr 1fr; gap: .6rem; }
 			.btn-dec {
-				border: none; border-radius: 14px; padding: 1.6rem .5rem; font-size: 1.1rem; font-weight: 700;
-				cursor: pointer; color: #fff; display: flex; flex-direction: column; gap: .4rem; align-items: center;
+				border: none; border-radius: 16px; padding: 1.6rem .5rem; font-size: 1.1rem; font-weight: 700;
+				cursor: pointer; color: #fff; display: flex; flex-direction: column; gap: .35rem; align-items: center;
 			}
-			.btn-dec b { font-size: 1.6rem; }
+			.btn-dec b { font-size: 1.9rem; }
+			.btn-dec small { font-size: .95rem; opacity: .85; font-weight: 600; }
 			.btn-dec.si { background: #15803d; }
 			.btn-dec.no { background: #475569; }
 			.btn-dec:active { filter: brightness(1.15); }
