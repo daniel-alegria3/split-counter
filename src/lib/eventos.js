@@ -9,7 +9,8 @@ export const TIPOS = ['tiempo', 'llegada', 'cola', 'decision'];
  * `id` viaja en los datos; `nombre` se muestra en la UI.
  */
 export const ESTACIONES = [
-	{ id: 'huellero', nombre: 'Huellero', grupo: 'Piso 1' },
+	{ id: 'huellero_a', nombre: 'Huellero A', grupo: 'Piso 1' },
+	{ id: 'huellero_b', nombre: 'Huellero B', grupo: 'Piso 1' },
 	{ id: 'bandeja', nombre: 'Bandeja (fruta + pan)', grupo: 'Piso 1' },
 	{ id: 'escalera', nombre: 'Subir al 2do piso', grupo: 'Tránsito' },
 	{ id: 'P1', nombre: 'P1 · Postre', grupo: 'Línea de servido' },
@@ -79,7 +80,13 @@ export function validarEvento(ev) {
 	} else if (tipo === 'llegada') {
 		const valor = Number(ev.valor ?? 1);
 		if (!Number.isFinite(valor) || valor < 0) throw new Error('valor de llegada inválido');
-		fila.estacion = 'entrada';
+		// La entrada principal usa 'entrada'; también se cuentan llegadas a
+		// estaciones internas (línea, devolución), que sí llevan su id.
+		const est = ev.estacion ? String(ev.estacion) : 'entrada';
+		if (est !== 'entrada' && !ESTACION_IDS.includes(est)) {
+			throw new Error(`estación inválida: ${est}`);
+		}
+		fila.estacion = est;
 		fila.valor = valor;
 		if (!fila.intervalo) throw new Error('falta intervalo en llegada');
 	} else if (tipo === 'decision') {

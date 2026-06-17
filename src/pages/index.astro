@@ -13,22 +13,18 @@ const ETAPAS = [
 			ayuda: 'Toca +1 por cada estudiante que entra al comedor. El intervalo de 20 min se ajusta solo a la hora; cámbialo solo si hace falta.' },
 	] },
 	{ titulo: '2 · Huelleros', vars: [
-		{ id: 't_huellero', nombre: 'Tiempo en huellero', tipo: 'tiempo', estacion: 'huellero',
-			ayuda: 'Elige a una persona: toca al empezar a marcar su huella y otra vez cuando termina. Repite con muchas personas.' },
-		{ id: 'c_huellero', nombre: 'Cola en huelleros', tipo: 'cola', estacion: 'huellero', cadaMin: 2,
-			ayuda: 'Cuenta cuántas personas esperan en la cola del huellero en ese momento. Toma una foto cada 2 min; el cronómetro de abajo te avisa.' },
+		{ id: 't_huellero_a', nombre: 'Tiempo huellero A', tipo: 'tiempo', estacion: 'huellero_a',
+			ayuda: 'Huellero A: toca al empezar a marcar la huella de una persona y otra vez cuando termina. Repite con muchas personas.' },
+		{ id: 't_huellero_b', nombre: 'Tiempo huellero B', tipo: 'tiempo', estacion: 'huellero_b',
+			ayuda: 'Huellero B: toca al empezar a marcar la huella de una persona y otra vez cuando termina. Repite con muchas personas.' },
 	] },
 	{ titulo: '3 · Bandeja', vars: [
 		{ id: 't_bandeja', nombre: 'Tiempo en bandeja', tipo: 'tiempo', estacion: 'bandeja',
 			ayuda: 'Desde que la persona llega a la estación hasta que recibe su bandeja con fruta y pan.' },
 	] },
-	{ titulo: '4 · Subir al 2do piso', vars: [
-		{ id: 't_escalera', nombre: 'Tiempo en subir', tipo: 'tiempo', estacion: 'escalera',
-			ayuda: 'Desde que la persona empieza a subir las escaleras hasta que llega al 2do piso.' },
-	] },
-	{ titulo: '5 · Línea de servido', vars: [
-		{ id: 'c_linea', nombre: 'Cola en la línea', tipo: 'cola', estacion: 'P1', cadaMin: 2,
-			ayuda: 'Cuenta las personas esperando para entrar a la línea (antes del P1 Postre) en ese momento. Una foto cada 2 min; el cronómetro avisa.' },
+	{ titulo: '4 · Línea de servido', vars: [
+		{ id: 'll_linea', nombre: 'Llegadas a la línea', tipo: 'llegada', estacion: 'P1',
+			ayuda: 'Toca +1 por cada persona que llega a la cola de la línea de servido (antes del P1 Postre). Se cuenta por intervalo de 20 min.' },
 		{ id: 't_P1', nombre: 'P1 · Postre', tipo: 'tiempo', estacion: 'P1',
 			ayuda: 'Tiempo que tarda el encargado en servir el postre a una persona. Toca al empezar y al terminar.' },
 		{ id: 't_P2', nombre: 'P2 · Sopa', tipo: 'tiempo', estacion: 'P2',
@@ -40,21 +36,21 @@ const ETAPAS = [
 		{ id: 't_P5', nombre: 'P5 · Mate', tipo: 'tiempo', estacion: 'P5',
 			ayuda: 'Tiempo que tarda en servir el mate a una persona. Toca al empezar y al terminar.' },
 	] },
-	{ titulo: '6 · Ají', vars: [
+	{ titulo: '5 · Ají', vars: [
 		{ id: 't_aji', nombre: 'Tiempo en ají', tipo: 'tiempo', estacion: 'aji',
 			ayuda: 'Solo para quien se sirve ají: desde que llega a la estación hasta que termina de servirse.' },
 		{ id: 'd_aji', nombre: '¿Se echa ají?', tipo: 'decision', opciones: [['aji_si', 'Sí'], ['aji_no', 'No']],
 			ayuda: 'Por cada persona que pasa por el ají, marca Sí o No según se sirva o no.' },
 	] },
-	{ titulo: '7 · Comer', vars: [
+	{ titulo: '6 · Comer', vars: [
 		{ id: 'd_piso', nombre: '¿Dónde come?', tipo: 'decision', opciones: [['piso_2', '2do piso'], ['piso_1', '1er piso']],
 			ayuda: 'Por cada persona que termina de servirse, marca dónde se sienta a comer: 2do o 1er piso.' },
 	] },
-	{ titulo: '8 · Devolución', vars: [
+	{ titulo: '7 · Devolución', vars: [
 		{ id: 't_devolucion', nombre: 'Tiempo en devolución', tipo: 'tiempo', estacion: 'devolucion',
 			ayuda: 'Desde que la persona llega al punto de devolución hasta que entrega su bandeja sucia.' },
-		{ id: 'c_devolucion', nombre: 'Cola en devolución', tipo: 'cola', estacion: 'devolucion', cadaMin: 1,
-			ayuda: 'Cuenta las personas en cola en el punto de devolución en ese momento (una foto, no acumulado). Toma una lectura cada 1 min; el cronómetro de abajo te avisa cuándo.' },
+		{ id: 'll_devolucion', nombre: 'Llegadas a devolución', tipo: 'llegada', estacion: 'devolucion',
+			ayuda: 'Toca +1 por cada persona que llega al punto de devolución de bandeja. Se cuenta por intervalo de 20 min.' },
 	] },
 ];
 ---
@@ -329,11 +325,15 @@ const ETAPAS = [
 			// ---- Llegadas ----
 			const llegadasSesion = {};
 			const ivSel = $('#intervalo-sel');
+			// Cuenta por estación + intervalo: la entrada, la línea (P1) y la
+			// devolución son pantallas distintas y no deben mezclar sus conteos.
+			function estLleg() { return (cur && cur.estacion) || 'entrada'; }
+			function claveLleg(iv) { return `${estLleg()}|${iv}`; }
 			function pintarReloj() {
 				$('#reloj').textContent = new Date().toLocaleTimeString('es-PE', { hour: '2-digit', minute: '2-digit' });
 			}
 			function pintarLlegadas() {
-				const n = llegadasSesion[ivSel.value] || 0;
+				const n = llegadasSesion[claveLleg(ivSel.value)] || 0;
 				$('#llegadas-count').textContent = n;
 				$('#llegadas-undo').disabled = n === 0;
 			}
@@ -345,16 +345,16 @@ const ETAPAS = [
 			}
 			ivSel.addEventListener('change', pintarLlegadas);
 			$('#llegadas-mas').addEventListener('click', () => {
-				const iv = ivSel.value;
-				llegadasSesion[iv] = (llegadasSesion[iv] || 0) + 1;
-				pintarLlegadas(); encolar({ tipo: 'llegada', valor: 1, intervalo: iv }); buzz();
+				const iv = ivSel.value, k = claveLleg(iv);
+				llegadasSesion[k] = (llegadasSesion[k] || 0) + 1;
+				pintarLlegadas(); encolar({ tipo: 'llegada', estacion: cur.estacion || undefined, valor: 1, intervalo: iv }); buzz();
 			});
 			$('#llegadas-undo').addEventListener('click', () => {
-				const iv = ivSel.value;
-				if (!(llegadasSesion[iv] > 0)) { toast('Nada que deshacer'); return; }
-				const ok = quitarUltimo((ev) => ev.tipo === 'llegada' && ev.intervalo === iv);
+				const iv = ivSel.value, k = claveLleg(iv), est = estLleg();
+				if (!(llegadasSesion[k] > 0)) { toast('Nada que deshacer'); return; }
+				const ok = quitarUltimo((ev) => ev.tipo === 'llegada' && ev.intervalo === iv && (ev.estacion || 'entrada') === est);
 				if (!ok) { toast('Ya se envió, no se puede deshacer'); return; }
-				llegadasSesion[iv]--; pintarLlegadas(); toast('Deshecho');
+				llegadasSesion[k]--; pintarLlegadas(); toast('Deshecho');
 			});
 
 			// ---- Colas (stepper + recordatorio con cuenta regresiva) ----
