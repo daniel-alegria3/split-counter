@@ -15,8 +15,8 @@ const ETAPAS = [
 	{ titulo: '2 · Huelleros', vars: [
 		{ id: 't_huellero', nombre: 'Tiempo en huellero', tipo: 'tiempo', estacion: 'huellero',
 			ayuda: 'Elige a una persona: toca al empezar a marcar su huella y otra vez cuando termina. Repite con muchas personas.' },
-		{ id: 'c_huellero', nombre: 'Cola en huelleros', tipo: 'cola', estacion: 'huellero', cadaMin: 5,
-			ayuda: 'Cuenta cuántas personas esperan en la cola del huellero. Toma una lectura cada 5 min; el cronómetro de abajo te avisa.' },
+		{ id: 'c_huellero', nombre: 'Cola en huelleros', tipo: 'cola', estacion: 'huellero', cadaMin: 2,
+			ayuda: 'Cuenta cuántas personas esperan en la cola del huellero en ese momento. Toma una foto cada 2 min; el cronómetro de abajo te avisa.' },
 	] },
 	{ titulo: '3 · Bandeja', vars: [
 		{ id: 't_bandeja', nombre: 'Tiempo en bandeja', tipo: 'tiempo', estacion: 'bandeja',
@@ -27,8 +27,8 @@ const ETAPAS = [
 			ayuda: 'Desde que la persona empieza a subir las escaleras hasta que llega al 2do piso.' },
 	] },
 	{ titulo: '5 · Línea de servido', vars: [
-		{ id: 'c_linea', nombre: 'Cola en la línea', tipo: 'cola', estacion: 'P1', cadaMin: 5,
-			ayuda: 'Cuenta las personas esperando para entrar a la línea (antes del P1 Postre). Una lectura cada 5 min; el cronómetro avisa.' },
+		{ id: 'c_linea', nombre: 'Cola en la línea', tipo: 'cola', estacion: 'P1', cadaMin: 2,
+			ayuda: 'Cuenta las personas esperando para entrar a la línea (antes del P1 Postre) en ese momento. Una foto cada 2 min; el cronómetro avisa.' },
 		{ id: 't_P1', nombre: 'P1 · Postre', tipo: 'tiempo', estacion: 'P1',
 			ayuda: 'Tiempo que tarda el encargado en servir el postre a una persona. Toca al empezar y al terminar.' },
 		{ id: 't_P2', nombre: 'P2 · Sopa', tipo: 'tiempo', estacion: 'P2',
@@ -53,8 +53,8 @@ const ETAPAS = [
 	{ titulo: '8 · Devolución', vars: [
 		{ id: 't_devolucion', nombre: 'Tiempo en devolución', tipo: 'tiempo', estacion: 'devolucion',
 			ayuda: 'Desde que la persona llega al punto de devolución hasta que entrega su bandeja sucia.' },
-		{ id: 'c_devolucion', nombre: 'Cola en devolución', tipo: 'cola', estacion: 'devolucion', cadaMin: 5,
-			ayuda: 'Cuenta las personas en cola en el punto de devolución. Toma una lectura cada 5 min; el cronómetro de abajo te avisa cuándo.' },
+		{ id: 'c_devolucion', nombre: 'Cola en devolución', tipo: 'cola', estacion: 'devolucion', cadaMin: 1,
+			ayuda: 'Cuenta las personas en cola en el punto de devolución en ese momento (una foto, no acumulado). Toma una lectura cada 1 min; el cronómetro de abajo te avisa cuándo.' },
 	] },
 ];
 ---
@@ -161,9 +161,9 @@ const ETAPAS = [
 						<div class="rec-ctrls">
 							<label>cada
 								<select id="cola-cada">
-									<option value="2">2</option>
-									<option value="5" selected>5</option>
-									<option value="10">10</option>
+									<option value="1">1</option>
+									<option value="2" selected>2</option>
+									<option value="5">5</option>
 								</select> min
 							</label>
 							<button id="cola-toggle" type="button">Pausar</button>
