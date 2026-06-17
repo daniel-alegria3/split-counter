@@ -1,10 +1,25 @@
 ---
 import { ESTACIONES, INTERVALOS } from '../lib/eventos.js';
 
-const cronoEstaciones = ESTACIONES; // todas se cronometran
-const colaEstaciones = ESTACIONES.filter((e) =>
-	['devolucion', 'huellero', 'P1', 'P2', 'P3', 'P4', 'P5', 'aji'].includes(e.id)
-);
+// Una "variable" = una pantalla dedicada. Se agrupan en el menú de inicio.
+const tiempos = ESTACIONES.map((e) => ({
+	id: 't_' + e.id, grupo: 'Tiempos de servicio', nombre: e.nombre, tipo: 'tiempo', estacion: e.id,
+}));
+const llegadas = [
+	{ id: 'llegadas', grupo: 'Llegadas', nombre: 'Llegadas por intervalo', tipo: 'llegada' },
+];
+const colas = [
+	{ id: 'c_huellero', nombre: 'Cola en huelleros', estacion: 'huellero' },
+	{ id: 'c_linea', nombre: 'Cola en línea de servido', estacion: 'P1' },
+	{ id: 'c_devolucion', nombre: 'Cola en devolución', estacion: 'devolucion' },
+].map((c) => ({ ...c, grupo: 'Colas', tipo: 'cola' }));
+const decisiones = [
+	{ id: 'd_aji', grupo: 'Decisiones', nombre: '¿Se echa ají?', tipo: 'decision', opciones: [['aji_si', 'Sí'], ['aji_no', 'No']] },
+	{ id: 'd_piso', grupo: 'Decisiones', nombre: '¿Dónde come?', tipo: 'decision', opciones: [['piso_2', '2do piso'], ['piso_1', '1er piso']] },
+];
+
+const VARIABLES = [...tiempos, ...llegadas, ...colas, ...decisiones];
+const GRUPOS = ['Tiempos de servicio', 'Llegadas', 'Colas', 'Decisiones'];
 ---
 
 <html lang="es">
@@ -16,7 +31,7 @@ const colaEstaciones = ESTACIONES.filter((e) =>
 		<title>Contador · Comedor UNSAAC</title>
 	</head>
 	<body>
-		<!-- Onboarding: nombre del observador -->
+		<!-- Onboarding -->
 		<div id="onboarding" class="onboarding" hidden>
 			<div class="card onboarding-card">
 				<h1>Toma de datos<br /><span>Comedor UNSAAC</span></h1>
@@ -43,105 +58,99 @@ const colaEstaciones = ESTACIONES.filter((e) =>
 		</header>
 
 		<main>
-			<!-- CRONÓMETRO -->
-			<section data-view="crono" class="view">
-				<h2>Cronómetro de tiempos</h2>
-				<p class="hint">Elige la estación, luego inicia y detén al terminar el servicio. Cada toma se guarda sola.</p>
-				<div class="chips" id="crono-chips">
-					{cronoEstaciones.map((e) => (
-						<button class="chip" data-est={e.id} type="button">{e.nombre}</button>
-					))}
-				</div>
-				<div class="timer-wrap">
-					<div class="timer" id="crono-display">0.0<small>s</small></div>
-					<button id="crono-btn" class="btn-huge" type="button" disabled>Elige estación</button>
-				</div>
-				<div class="stats" id="crono-stats">Sin tomas aún.</div>
-				<ul class="recientes" id="crono-recientes"></ul>
-			</section>
-
-			<!-- LLEGADAS -->
-			<section data-view="llegadas" class="view" hidden>
-				<h2>Contador de llegadas</h2>
-				<p class="hint">Cada toque cuenta un estudiante que llega, en el intervalo seleccionado.</p>
-				<label class="campo">
-					Intervalo de 20 min
-					<select id="intervalo-sel">
-						{INTERVALOS.map((iv) => (<option value={iv}>{iv}</option>))}
-					</select>
-				</label>
-				<div class="contador-grande" id="llegadas-count">0</div>
-				<div class="hint center" id="llegadas-sub">en este intervalo (esta sesión)</div>
-				<button id="llegadas-mas" class="btn-huge tap" type="button">+1 llegada</button>
-				<button id="llegadas-undo" class="btn-secondary" type="button">Deshacer último</button>
-			</section>
-
-			<!-- COLAS -->
-			<section data-view="colas" class="view" hidden>
-				<h2>Registro de colas</h2>
-				<p class="hint">Anota cuántas personas hay en cola en una estación, en este momento.</p>
-				<div class="chips" id="cola-chips">
-					{colaEstaciones.map((e, i) => (
-						<button class={`chip${i === 0 ? ' on' : ''}`} data-est={e.id} type="button">{e.nombre}</button>
-					))}
-				</div>
-				<label class="campo">
-					Personas en cola
-					<input id="cola-num" type="number" inputmode="numeric" min="0" step="1" value="5" />
-				</label>
-				<button id="cola-guardar" class="btn-huge" type="button">Guardar observación</button>
-				<div class="stats" id="cola-stats"></div>
-			</section>
-
-			<!-- DECISIONES -->
-			<section data-view="decisiones" class="view" hidden>
-				<h2>Decisiones</h2>
-				<p class="hint">Registra qué decide cada comensal. Un toque = una persona.</p>
-				<div class="grupo">
-					<h3>¿Se echa ají?</h3>
-					<div class="par">
-						<button class="btn-dec si" data-dec="aji_si" type="button">Sí <b id="c-aji_si">0</b></button>
-						<button class="btn-dec no" data-dec="aji_no" type="button">No <b id="c-aji_no">0</b></button>
+			<!-- INICIO: menú de variables -->
+			<section id="home" class="screen">
+				{GRUPOS.map((g) => (
+					<div class="grupo-menu">
+						<h2 class="grupo-tit">{g}</h2>
+						<div class="menu">
+							{VARIABLES.filter((v) => v.grupo === g).map((v) => (
+								<button
+									class="var-card"
+									data-id={v.id}
+									data-tipo={v.tipo}
+									data-nombre={v.nombre}
+									data-estacion={v.estacion || ''}
+									data-opciones={v.opciones ? JSON.stringify(v.opciones) : ''}
+									type="button"
+								>{v.nombre}</button>
+							))}
+						</div>
 					</div>
+				))}
+			</section>
+
+			<!-- PANTALLA de una variable -->
+			<section id="pantalla" class="screen" hidden>
+				<div class="volver-bar">
+					<button id="volver" class="volver" type="button">‹ Volver</button>
+					<span id="pantalla-tit"></span>
 				</div>
-				<div class="grupo">
-					<h3>¿Dónde come?</h3>
+
+				<!-- panel: tiempo -->
+				<div data-panel="tiempo" hidden>
+					<p class="hint">Inicia y detén al terminar el servicio. Cada toma se guarda sola.</p>
+					<div class="timer-wrap">
+						<div class="timer" id="crono-display">0.0<small>s</small></div>
+						<button id="crono-btn" class="btn-huge" type="button">Iniciar</button>
+					</div>
+					<div class="stats" id="crono-stats"></div>
+					<ul class="recientes" id="crono-recientes"></ul>
+				</div>
+
+				<!-- panel: llegada -->
+				<div data-panel="llegada" hidden>
+					<p class="hint">Cada toque cuenta un estudiante que llega, en el intervalo seleccionado.</p>
+					<label class="campo">
+						Intervalo de 20 min
+						<select id="intervalo-sel">
+							{INTERVALOS.map((iv) => (<option value={iv}>{iv}</option>))}
+						</select>
+					</label>
+					<div class="contador-grande" id="llegadas-count">0</div>
+					<div class="hint center">en este intervalo (esta sesión)</div>
+					<button id="llegadas-mas" class="btn-huge tap" type="button">+1 llegada</button>
+					<button id="llegadas-undo" class="btn-secondary" type="button">Deshacer último</button>
+				</div>
+
+				<!-- panel: cola -->
+				<div data-panel="cola" hidden>
+					<p class="hint">Anota cuántas personas hay en cola en este momento.</p>
+					<label class="campo">
+						Personas en cola
+						<input id="cola-num" type="number" inputmode="numeric" min="0" step="1" value="5" />
+					</label>
+					<button id="cola-guardar" class="btn-huge" type="button">Guardar observación</button>
+					<div class="stats" id="cola-stats"></div>
+				</div>
+
+				<!-- panel: decisión -->
+				<div data-panel="decision" hidden>
+					<p class="hint">Un toque = una persona.</p>
+					<h3 id="dec-q"></h3>
 					<div class="par">
-						<button class="btn-dec si" data-dec="piso_2" type="button">2do piso <b id="c-piso_2">0</b></button>
-						<button class="btn-dec no" data-dec="piso_1" type="button">1er piso <b id="c-piso_1">0</b></button>
+						<button class="btn-dec si" id="dec-a" type="button"><span id="dec-a-l"></span> <b id="dec-a-n">0</b></button>
+						<button class="btn-dec no" id="dec-b" type="button"><span id="dec-b-l"></span> <b id="dec-b-n">0</b></button>
 					</div>
 				</div>
 			</section>
 		</main>
 
-		<nav class="tabs">
-			<button class="tab on" data-tab="crono" type="button"><span>⏱</span>Tiempos</button>
-			<button class="tab" data-tab="llegadas" type="button"><span>＋</span>Llegadas</button>
-			<button class="tab" data-tab="colas" type="button"><span>≡</span>Colas</button>
-			<button class="tab" data-tab="decisiones" type="button"><span>%</span>Decisión</button>
-		</nav>
-
 		<div id="toast" class="toast" hidden></div>
 
 		<script>
-			import {
-				alCambiar, getObservador, setObservador, encolar, sincronizar, iniciarSync, pendientes,
-			} from '../lib/cola-cliente.js';
+			import { alCambiar, getObservador, setObservador, encolar, iniciarSync } from '../lib/cola-cliente.js';
 			import { intervaloDe } from '../lib/eventos.js';
 
 			const $ = (s) => document.querySelector(s);
 			const toast = (msg) => {
 				const t = $('#toast');
-				t.textContent = msg;
-				t.hidden = false;
-				clearTimeout(t._t);
-				t._t = setTimeout(() => (t.hidden = true), 1600);
+				t.textContent = msg; t.hidden = false;
+				clearTimeout(t._t); t._t = setTimeout(() => (t.hidden = true), 1600);
 			};
 
 			// ---- Observador / onboarding ----
-			function pintarObs() {
-				$('#obs-nombre').textContent = getObservador() || '—';
-			}
+			function pintarObs() { $('#obs-nombre').textContent = getObservador() || '—'; }
 			function pedirNombre(forzar) {
 				const ob = $('#onboarding');
 				if (!forzar && getObservador()) { ob.hidden = true; return; }
@@ -155,14 +164,9 @@ const colaEstaciones = ESTACIONES.filter((e) =>
 				$('#nombre-input').value = preset ? '' : actual;
 				ob.hidden = false;
 			}
-			function elegir(nombre) {
-				setObservador(nombre);
-				pintarObs();
-				$('#onboarding').hidden = true;
-			}
-			document.querySelectorAll('#nombres .btn-nombre').forEach((b) => {
-				b.addEventListener('click', () => elegir(b.dataset.nombre));
-			});
+			function elegir(nombre) { setObservador(nombre); pintarObs(); $('#onboarding').hidden = true; }
+			document.querySelectorAll('#nombres .btn-nombre').forEach((b) =>
+				b.addEventListener('click', () => elegir(b.dataset.nombre)));
 			$('#nombre-ok').addEventListener('click', () => {
 				const v = $('#nombre-input').value.trim();
 				if (!v) { $('#nombre-input').focus(); return; }
@@ -172,9 +176,7 @@ const colaEstaciones = ESTACIONES.filter((e) =>
 			$('#cambiar-obs').addEventListener('click', () => pedirNombre(true));
 
 			// ---- Estado de red + sync badge ----
-			function pintarRed() {
-				$('#net-dot').classList.toggle('off', !navigator.onLine);
-			}
+			function pintarRed() { $('#net-dot').classList.toggle('off', !navigator.onLine); }
 			window.addEventListener('online', pintarRed);
 			window.addEventListener('offline', pintarRed);
 			alCambiar((n) => {
@@ -182,133 +184,123 @@ const colaEstaciones = ESTACIONES.filter((e) =>
 				$('#sync-badge').classList.toggle('pend', n > 0);
 			});
 
-			// ---- Tabs ----
-			document.querySelectorAll('.tab').forEach((t) => {
-				t.addEventListener('click', () => {
-					document.querySelectorAll('.tab').forEach((x) => x.classList.remove('on'));
-					t.classList.add('on');
-					const name = t.dataset.tab;
-					document.querySelectorAll('.view').forEach((v) => (v.hidden = v.dataset.view !== name));
-				});
-			});
+			// ---- Navegación: home <-> pantalla de variable ----
+			let cur = null;
+			function abrir(cfg) {
+				cur = cfg;
+				$('#pantalla-tit').textContent = cfg.nombre;
+				document.querySelectorAll('#pantalla [data-panel]').forEach((p) => (p.hidden = p.dataset.panel !== cfg.tipo));
+				if (cfg.tipo === 'tiempo') prepTiempo();
+				else if (cfg.tipo === 'llegada') prepLlegada();
+				else if (cfg.tipo === 'cola') prepCola();
+				else if (cfg.tipo === 'decision') prepDecision();
+				$('#home').hidden = true; $('#pantalla').hidden = false;
+				window.scrollTo(0, 0);
+			}
+			function volver() {
+				if (corriendo) { corriendo = false; cancelAnimationFrame(raf); }
+				$('#pantalla').hidden = true; $('#home').hidden = false;
+				cur = null;
+			}
+			$('#volver').addEventListener('click', volver);
+			document.querySelectorAll('.var-card').forEach((c) =>
+				c.addEventListener('click', () => abrir({
+					id: c.dataset.id, tipo: c.dataset.tipo, nombre: c.dataset.nombre,
+					estacion: c.dataset.estacion || null,
+					opciones: c.dataset.opciones ? JSON.parse(c.dataset.opciones) : null,
+				})));
 
-			// ---- Cronómetro ----
-			let cronoEst = null, t0 = 0, corriendo = false, raf = 0;
-			const muestras = {}; // est -> [segundos]
-			function fmt(s) { return s.toFixed(1); }
+			// ---- Tiempo ----
+			let t0 = 0, corriendo = false, raf = 0;
+			const muestras = {};
 			function tick() {
 				const s = (performance.now() - t0) / 1000;
-				$('#crono-display').innerHTML = `${fmt(s)}<small>s</small>`;
+				$('#crono-display').innerHTML = `${s.toFixed(1)}<small>s</small>`;
 				raf = requestAnimationFrame(tick);
 			}
-			function pintarStats() {
-				const arr = muestras[cronoEst] || [];
-				const stats = $('#crono-stats');
-				if (!arr.length) { stats.textContent = 'Sin tomas aún en esta estación.'; }
-				else {
-					const prom = arr.reduce((a, b) => a + b, 0) / arr.length;
-					stats.textContent = `${arr.length} toma(s) · promedio ${prom.toFixed(1)} s`;
-				}
-				const ul = $('#crono-recientes');
-				ul.innerHTML = arr.slice(-6).reverse().map((v) => `<li>${v.toFixed(1)} s</li>`).join('');
+			function statsTiempo() {
+				const arr = muestras[cur.estacion] || [];
+				$('#crono-stats').textContent = arr.length
+					? `${arr.length} toma(s) · promedio ${(arr.reduce((a, b) => a + b, 0) / arr.length).toFixed(1)} s`
+					: 'Sin tomas aún en esta variable.';
+				$('#crono-recientes').innerHTML = arr.slice(-6).reverse().map((v) => `<li>${v.toFixed(1)} s</li>`).join('');
 			}
-			document.querySelectorAll('#crono-chips .chip').forEach((c) => {
-				c.addEventListener('click', () => {
-					if (corriendo) return;
-					document.querySelectorAll('#crono-chips .chip').forEach((x) => x.classList.remove('on'));
-					c.classList.add('on');
-					cronoEst = c.dataset.est;
-					const btn = $('#crono-btn');
-					btn.disabled = false;
-					btn.textContent = 'Iniciar';
-					$('#crono-display').innerHTML = '0.0<small>s</small>';
-					pintarStats();
-				});
-			});
+			function prepTiempo() {
+				corriendo = false; cancelAnimationFrame(raf);
+				$('#crono-display').innerHTML = '0.0<small>s</small>';
+				const b = $('#crono-btn'); b.textContent = 'Iniciar'; b.classList.remove('stop');
+				statsTiempo();
+			}
 			$('#crono-btn').addEventListener('click', () => {
-				if (!cronoEst) return;
-				const btn = $('#crono-btn');
+				const b = $('#crono-btn');
 				if (!corriendo) {
 					corriendo = true; t0 = performance.now();
-					btn.textContent = 'Detener'; btn.classList.add('stop');
-					tick();
+					b.textContent = 'Detener'; b.classList.add('stop'); tick();
 				} else {
 					corriendo = false; cancelAnimationFrame(raf);
 					const s = (performance.now() - t0) / 1000;
-					btn.textContent = 'Iniciar'; btn.classList.remove('stop');
-					(muestras[cronoEst] ||= []).push(s);
-					encolar({ tipo: 'tiempo', estacion: cronoEst, valor: Math.round(s * 10) / 10 });
-					pintarStats();
-					toast(`Guardado: ${s.toFixed(1)} s`);
+					b.textContent = 'Iniciar'; b.classList.remove('stop');
+					(muestras[cur.estacion] ||= []).push(s);
+					encolar({ tipo: 'tiempo', estacion: cur.estacion, valor: Math.round(s * 10) / 10 });
+					statsTiempo(); toast(`Guardado: ${s.toFixed(1)} s`);
 				}
 			});
 
 			// ---- Llegadas ----
-			const llegadasSesion = {}; // intervalo -> conteo
+			const llegadasSesion = {};
 			const ivSel = $('#intervalo-sel');
-			ivSel.value = intervaloDe() || ivSel.options[0].value;
-			function pintarLlegadas() {
-				$('#llegadas-count').textContent = llegadasSesion[ivSel.value] || 0;
-			}
+			function pintarLlegadas() { $('#llegadas-count').textContent = llegadasSesion[ivSel.value] || 0; }
+			function prepLlegada() { if (!ivSel.value) ivSel.value = intervaloDe() || ivSel.options[0].value; pintarLlegadas(); }
 			ivSel.addEventListener('change', pintarLlegadas);
-			let ultimaLlegada = null;
 			$('#llegadas-mas').addEventListener('click', () => {
 				const iv = ivSel.value;
 				llegadasSesion[iv] = (llegadasSesion[iv] || 0) + 1;
 				pintarLlegadas();
-				ultimaLlegada = encolar({ tipo: 'llegada', valor: 1, intervalo: iv });
+				encolar({ tipo: 'llegada', valor: 1, intervalo: iv });
 				if (navigator.vibrate) navigator.vibrate(8);
 			});
 			$('#llegadas-undo').addEventListener('click', () => {
 				const iv = ivSel.value;
 				if (!llegadasSesion[iv]) { toast('Nada que deshacer'); return; }
-				llegadasSesion[iv]--;
-				pintarLlegadas();
-				// Compensación: registra una llegada negativa para anular en la hoja.
+				llegadasSesion[iv]--; pintarLlegadas();
 				encolar({ tipo: 'llegada', valor: 0, intervalo: iv, notas: 'deshacer (-1)' });
 				toast('Deshecho');
 			});
-			pintarLlegadas();
 
 			// ---- Colas ----
-			let colaEst = document.querySelector('#cola-chips .chip.on')?.dataset.est;
-			document.querySelectorAll('#cola-chips .chip').forEach((c) => {
-				c.addEventListener('click', () => {
-					document.querySelectorAll('#cola-chips .chip').forEach((x) => x.classList.remove('on'));
-					c.classList.add('on');
-					colaEst = c.dataset.est;
-				});
-			});
+			function prepCola() { $('#cola-stats').textContent = ''; }
 			$('#cola-guardar').addEventListener('click', () => {
 				const n = Number($('#cola-num').value);
 				if (!Number.isFinite(n) || n < 0) { toast('Número inválido'); return; }
-				encolar({ tipo: 'cola', estacion: colaEst, valor: n });
-				$('#cola-stats').textContent = `Última: ${n} en ${colaEst} (${new Date().toLocaleTimeString('es-PE')})`;
+				encolar({ tipo: 'cola', estacion: cur.estacion, valor: n });
+				$('#cola-stats').textContent = `Última: ${n} (${new Date().toLocaleTimeString('es-PE')})`;
 				toast('Cola registrada');
 			});
 
 			// ---- Decisiones ----
-			const decSesion = { aji_si: 0, aji_no: 0, piso_2: 0, piso_1: 0 };
-			document.querySelectorAll('.btn-dec').forEach((b) => {
-				b.addEventListener('click', () => {
-					const d = b.dataset.dec;
-					decSesion[d]++;
-					$('#c-' + d).textContent = decSesion[d];
+			const decSesion = {};
+			function prepDecision() {
+				const [[va, la], [vb, lb]] = cur.opciones;
+				$('#dec-q').textContent = cur.nombre;
+				$('#dec-a').dataset.dec = va; $('#dec-a-l').textContent = la; $('#dec-a-n').textContent = decSesion[va] || 0;
+				$('#dec-b').dataset.dec = vb; $('#dec-b-l').textContent = lb; $('#dec-b-n').textContent = decSesion[vb] || 0;
+			}
+			['#dec-a', '#dec-b'].forEach((sel) => {
+				$(sel).addEventListener('click', (e) => {
+					const btn = e.currentTarget, d = btn.dataset.dec;
+					decSesion[d] = (decSesion[d] || 0) + 1;
+					btn.querySelector('b').textContent = decSesion[d];
 					encolar({ tipo: 'decision', valor: d });
 					if (navigator.vibrate) navigator.vibrate(8);
 				});
 			});
 
 			// ---- Arranque ----
-			pintarObs();
-			pintarRed();
-			pedirNombre(false);
-			iniciarSync();
+			pintarObs(); pintarRed(); pedirNombre(false); iniciarSync();
 		</script>
 
 		<style>
 			* { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
-			/* El atributo hidden debe ganar a reglas con display (ej. .onboarding flex). */
 			[hidden] { display: none !important; }
 			:root {
 				--bg: #0f172a; --panel: #1e293b; --panel2: #334155;
@@ -319,18 +311,17 @@ const colaEstaciones = ESTACIONES.filter((e) =>
 			body {
 				font-family: system-ui, -apple-system, 'Segoe UI', sans-serif;
 				background: var(--bg); color: var(--txt);
-				padding-bottom: 78px; min-height: 100vh;
+				padding-bottom: 2rem; min-height: 100vh;
 			}
-			h2 { font-size: 1.15rem; margin: 0 0 .25rem; }
-			h3 { font-size: .95rem; margin: 0 0 .5rem; color: var(--muted); font-weight: 600; }
+			h2 { font-size: 1.15rem; margin: 0; }
+			h3 { font-size: 1rem; margin: 0 0 .6rem; color: var(--txt); font-weight: 700; text-align: center; }
 			.hint { color: var(--muted); font-size: .82rem; margin: 0 0 1rem; line-height: 1.4; }
 			.hint.center { text-align: center; }
 
 			.top {
 				position: sticky; top: 0; z-index: 5;
 				display: flex; justify-content: space-between; align-items: center;
-				padding: .6rem .9rem; background: var(--panel);
-				border-bottom: 1px solid #0008;
+				padding: .6rem .9rem; background: var(--panel); border-bottom: 1px solid #0008;
 			}
 			.top-obs { display: flex; align-items: center; gap: .5rem; font-size: .9rem; font-weight: 600; }
 			.dot { width: 9px; height: 9px; border-radius: 50%; background: var(--ok); }
@@ -341,15 +332,24 @@ const colaEstaciones = ESTACIONES.filter((e) =>
 
 			main { padding: 1rem .9rem; max-width: 560px; margin: 0 auto; }
 
-			.chips { display: flex; flex-wrap: wrap; gap: .4rem; margin-bottom: 1.1rem; }
-			.chip {
+			/* Menú de inicio */
+			.grupo-menu { margin-bottom: 1.4rem; }
+			.grupo-tit { font-size: .8rem; text-transform: uppercase; letter-spacing: .05em; color: var(--accent); margin-bottom: .55rem; }
+			.menu { display: grid; grid-template-columns: 1fr 1fr; gap: .55rem; }
+			.var-card {
 				background: var(--panel); color: var(--txt); border: 1px solid var(--panel2);
-				border-radius: 999px; padding: .5rem .8rem; font-size: .82rem; cursor: pointer;
+				border-radius: 14px; padding: 1.05rem .7rem; font-size: .95rem; font-weight: 600;
+				text-align: left; cursor: pointer; min-height: 58px; line-height: 1.2;
 			}
-			.chip.on { background: var(--accent); color: #04293a; border-color: var(--accent); font-weight: 700; }
+			.var-card:active { background: var(--panel2); }
+
+			/* Pantalla de variable */
+			.volver-bar { display: flex; align-items: center; gap: .6rem; margin-bottom: .8rem; }
+			.volver { background: var(--panel); border: 1px solid var(--panel2); color: var(--txt); border-radius: 10px; padding: .5rem .8rem; font-size: .9rem; font-weight: 600; cursor: pointer; }
+			#pantalla-tit { font-size: 1.15rem; font-weight: 700; }
 
 			.timer-wrap { text-align: center; margin: 1rem 0; }
-			.timer { font-size: 3.4rem; font-weight: 800; font-variant-numeric: tabular-nums; letter-spacing: -1px; }
+			.timer { font-size: 3.6rem; font-weight: 800; font-variant-numeric: tabular-nums; letter-spacing: -1px; }
 			.timer small { font-size: 1.2rem; color: var(--muted); margin-left: .2rem; }
 
 			.btn-huge {
@@ -357,7 +357,6 @@ const colaEstaciones = ESTACIONES.filter((e) =>
 				background: var(--accent); color: #04293a; font-size: 1.4rem; font-weight: 800;
 				padding: 1.1rem; margin-top: .8rem; cursor: pointer;
 			}
-			.btn-huge:disabled { background: var(--panel2); color: var(--muted); }
 			.btn-huge.stop { background: var(--stop); color: #fff; }
 			.btn-huge.tap:active { transform: scale(.98); }
 			.btn-primary { width: 100%; border: none; border-radius: 12px; background: var(--accent); color: #04293a; font-weight: 700; padding: .9rem; font-size: 1rem; cursor: pointer; }
@@ -375,29 +374,17 @@ const colaEstaciones = ESTACIONES.filter((e) =>
 			}
 			.contador-grande { text-align: center; font-size: 5rem; font-weight: 800; font-variant-numeric: tabular-nums; line-height: 1; margin: .5rem 0 .2rem; }
 
-			.grupo { margin-bottom: 1.4rem; }
 			.par { display: grid; grid-template-columns: 1fr 1fr; gap: .6rem; }
 			.btn-dec {
-				border: none; border-radius: 14px; padding: 1.3rem .5rem; font-size: 1.05rem; font-weight: 700;
-				cursor: pointer; color: #fff; display: flex; flex-direction: column; gap: .3rem; align-items: center;
+				border: none; border-radius: 14px; padding: 1.6rem .5rem; font-size: 1.1rem; font-weight: 700;
+				cursor: pointer; color: #fff; display: flex; flex-direction: column; gap: .4rem; align-items: center;
 			}
-			.btn-dec b { font-size: 1.5rem; }
+			.btn-dec b { font-size: 1.6rem; }
 			.btn-dec.si { background: #15803d; }
 			.btn-dec.no { background: #475569; }
 			.btn-dec:active { filter: brightness(1.15); }
 
-			.tabs {
-				position: fixed; bottom: 0; left: 0; right: 0; z-index: 5;
-				display: grid; grid-template-columns: repeat(4, 1fr);
-				background: var(--panel); border-top: 1px solid #0008;
-			}
-			.tab {
-				background: none; border: none; color: var(--muted); cursor: pointer;
-				padding: .55rem .2rem; font-size: .7rem; display: flex; flex-direction: column; align-items: center; gap: .15rem;
-			}
-			.tab span { font-size: 1.1rem; }
-			.tab.on { color: var(--accent); }
-
+			/* Onboarding */
 			.onboarding {
 				position: fixed; inset: 0; z-index: 20; background: var(--bg);
 				display: flex; align-items: center; justify-content: center; padding: 1.5rem;
@@ -420,7 +407,7 @@ const colaEstaciones = ESTACIONES.filter((e) =>
 			.onboarding input { width: 100%; padding: .9rem; border-radius: 12px; border: 1px solid var(--panel2); background: var(--bg); color: var(--txt); font-size: 1rem; }
 
 			.toast {
-				position: fixed; bottom: 92px; left: 50%; transform: translateX(-50%); z-index: 30;
+				position: fixed; bottom: 24px; left: 50%; transform: translateX(-50%); z-index: 30;
 				background: #000d; color: #fff; padding: .6rem 1.1rem; border-radius: 999px; font-size: .9rem;
 			}
 		</style>
