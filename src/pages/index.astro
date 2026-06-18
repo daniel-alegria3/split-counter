@@ -45,6 +45,8 @@ const ETAPAS = [
 	{ titulo: '6 · Comer', vars: [
 		{ id: 'd_piso', nombre: '¿Dónde come?', tipo: 'decision', opciones: [['piso_2', '2do piso'], ['piso_1', '1er piso']],
 			ayuda: 'Por cada persona que termina de servirse, marca dónde se sienta a comer: 2do o 1er piso.' },
+		{ id: 't_consumo', nombre: 'Tiempo de consumo', tipo: 'tiempo', estacion: 'consumo',
+			ayuda: 'Tiempo que tarda el comensal en consumir sus alimentos en la mesa. Toca al empezar a comer (sentarse) y al terminar (levantarse).' },
 	] },
 	{ titulo: '7 · Devolución', vars: [
 		{ id: 't_devolucion', nombre: 'Tiempo en devolución', tipo: 'tiempo', estacion: 'devolucion',

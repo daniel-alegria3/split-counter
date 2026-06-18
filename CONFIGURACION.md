@@ -16,7 +16,7 @@ Cada medición es una fila: `timestamp · observador · tipo · estacion · valo
 
 | tipo       | qué guarda            | estacion              | valor                          |
 |------------|-----------------------|-----------------------|--------------------------------|
-| `tiempo`   | tiempo de servicio    | huellero, P1…P5, etc. | segundos (decimal)             |
+| `tiempo`   | tiempo de servicio    | huellero, P1…P5, consumo, etc. | segundos (decimal)             |
 | `llegada`  | un estudiante que llega | `entrada`           | 1 (o 0 si se deshace)          |
 | `cola`     | longitud de cola      | devolucion, etc.      | nº de personas                 |
 | `decision` | elección del comensal | aji / piso            | aji_si, aji_no, piso_2, piso_1 |

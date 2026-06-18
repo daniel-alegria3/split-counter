@@ -19,6 +19,7 @@ export const ESTACIONES = [
 	{ id: 'P4', nombre: 'P4 · Arroz', grupo: 'Línea de servido' },
 	{ id: 'P5', nombre: 'P5 · Mate', grupo: 'Línea de servido' },
 	{ id: 'aji', nombre: 'Ají (autoservicio)', grupo: 'Piso 2' },
+	{ id: 'consumo', nombre: 'Tiempo de consumo', grupo: 'Comer' },
 	{ id: 'devolucion', nombre: 'Devolución de bandeja', grupo: 'Salida' },
 ];
 
